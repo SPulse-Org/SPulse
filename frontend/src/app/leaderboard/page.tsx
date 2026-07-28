@@ -7,24 +7,13 @@ import LeaderboardTabs from "@/components/leaderboard/LeaderboardTabs";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { FiAward } from "react-icons/fi";
-import { timeAgo } from "@/utils/helpers";
-import { formatDate } from "@/utils/helpers";
+import { timeAgo, formatDate } from "@/utils/helpers";
 
 export default function LeaderboardPage() {
   const [tab, setTab] = useState<LeaderboardTab>("top_predictors");
   const { data: players, loading, error, lastUpdated } = useLeaderboard(tab);
   const { publicKey } = useWallet();
-  const [lastUpdated, setLastUpdated] = useState<number>(
-    Math.floor(Date.now() / 1000)
-  );
   const [, forceUpdate] = useState(0);
-
-  // Record when data last loaded
-  useEffect(() => {
-    if (!loading) {
-      setLastUpdated(Math.floor(Date.now() / 1000));
-    }
-  }, [loading, tab]);
 
   // Re-render every 30s so the "X ago" string stays fresh
   useEffect(() => {
@@ -54,21 +43,11 @@ export default function LeaderboardPage() {
         <p className="text-slate-400">
           Rankings update in real-time from onchain data. Timestamps across the app use your local timezone.
         </p>
-        {!loading && (
+        {!loading && lastUpdated && (
           <p className="text-xs text-slate-500">
             Updated {timeAgo(lastUpdated)}
           </p>
         )}
-        <div className="flex items-center justify-between">
-          <p className="text-slate-400">
-            Rankings update in real-time from onchain data.
-          </p>
-          {!loading && (
-            <p className="text-xs text-slate-500">
-              Updated {timeAgo(lastUpdated)}
-            </p>
-          )}
-        </div>
       </div>
 
       <LeaderboardTabs activeTab={tab} onTabChange={setTab} />
@@ -160,7 +139,7 @@ export default function LeaderboardPage() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-sm">
-                              {player.displayName || truncateAddress(player.address)}
+                              {player.displayName || `${player.address.slice(0, 4)}...${player.address.slice(-4)}`}
                             </span>
                             {isCurrentUser && (
                               <span className="text-[10px] font-medium bg-primary-500/20 text-primary-300 px-2 py-0.5 rounded-full">
@@ -197,10 +176,4 @@ export default function LeaderboardPage() {
       </ErrorBoundary>
     </div>
   );
-}
-
-// Helper function used inside the component
-function truncateAddress(addr: string): string {
-  if (!addr || addr.length <= 10) return addr;
-  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 }

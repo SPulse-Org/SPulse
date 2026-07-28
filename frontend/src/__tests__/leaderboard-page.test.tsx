@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   lastUpdated: 1_800_000_000 as number | null,
   formatDate: vi.fn(() => "localized timestamp"),
+  timeAgo: vi.fn(() => "5 minutes ago"),
 }));
 
 vi.mock("@/hooks/useLeaderboard", () => ({
@@ -23,6 +24,7 @@ vi.mock("@/hooks/useWallet", () => ({
 
 vi.mock("@/utils/helpers", () => ({
   formatDate: mocks.formatDate,
+  timeAgo: mocks.timeAgo,
 }));
 
 import LeaderboardPage from "@/app/leaderboard/page";
