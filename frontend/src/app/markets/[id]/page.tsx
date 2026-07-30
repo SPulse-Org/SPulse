@@ -326,7 +326,6 @@ export default function MarketDetailPage({
                       </span>
                     </div>
                     <span className="text-xs text-slate-600 shrink-0">
-                      {formatEventTime(evt.timestamp)}
                       {formatTime(evt.timestamp)}
                     </span>
                   </div>
