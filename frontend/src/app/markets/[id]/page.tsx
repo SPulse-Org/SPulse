@@ -9,8 +9,9 @@ import { pollMarketEvents } from "@/services/events";
 import { getXlmBalance } from "@/services/soroban";
 import {
   displayXLM,
-  formatTime,
   formatXLM,
+  formatTime,
+  formatEventTime,
   calculatePayout,
   truncateAddress,
 } from "@/utils/helpers";
