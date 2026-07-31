@@ -7,7 +7,7 @@ and a modern Next.js frontend. This repository includes the core contracts,
 front-end app, tests, and deployment helpers so you can run, test, and
 iterate locally or deploy to a network.
 
-Author: WITTIG
+Author: WITTIG/Muyideen-js
 
 ---
 
