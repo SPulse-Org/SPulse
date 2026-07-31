@@ -95,16 +95,19 @@ For contract call examples and deployed addresses, see `docs/CONTRACT_CALLS.md`.
 
 ---
 
-## Live Mainnet Contracts
+## Verify Deployment on Stellar
 
-| Contract | Address |
-|----------|---------|
-| Prediction Market | `CDGNPRYTFDXJLWZE4YDKZXW4IEN2RLPSE4N7VM5HJ7NLPL2QC45GIXI5` |
-| PULSE Token | `CAYL4TKNRMXAX5ZLQGFEZ6XOC2QHTCTN5QC2SB5BEEHLVO6SDU2UBLRH` |
-| Referral Registry | `CAGJVX6EXMCKKWDJCQFIEJ34CZTHZOGLWJM6KQTGDEXEO723CJZ5773H` |
-| Leaderboard | `CCWWOQSDSO3XXLCMA6A2HYRUFYVNUJZ2HPAMFQSPOB4JWYIBY2HWVTOB` |
+To confirm whether the project is deployed on Stellar, search the Stellar explorer for contract IDs, account addresses, or transaction hashes.
 
-> Network: Stellar Mainnet (Public)
+Recommended explorers:
+
+- [Stellar Expert](https://stellar.expert)
+- [Soroban Explorer](https://soroban.stellar.org/explorer)
+
+Search for a known contract ID or account to verify live status on Mainnet or Testnet.
+If the contract exists, the explorer will show its deployment details and history.
+
+For contract addresses and example calls, see `docs/CONTRACT_CALLS.md`.
 
 ---
 
