@@ -1,194 +1,141 @@
 ﻿# StellarPulse
 
-A compact, production-oriented prediction market built on Stellar + Soroban.
+A production-oriented prediction market built on **Stellar** and **Soroban**.
 
-StellarPulse is a monorepo containing on-chain smart contracts (Soroban/Rust)
-and a modern Next.js frontend. This repository includes the core contracts,
-front-end app, tests, and deployment helpers so you can run, test, and
-iterate locally or deploy to a network.
+StellarPulse is a monorepo containing the full product stack:
+- Soroban smart contracts in Rust
+- A Next.js frontend with TypeScript
+- Deployment scripts for Stellar testnet and mainnet
 
-Author: WITTIG/Muyideen-js
+---
+
+## What is StellarPulse?
+
+StellarPulse is a binary prediction market where users bet YES/NO on real-world outcomes.
+The platform is designed for low-cost, fast on-chain settlement using Stellar assets and Soroban smart contracts.
+
+Key capabilities:
+- Binary bets on prediction markets
+- Token rewards and leaderboard points
+- On-chain referral rewards
+- Fee sponsorship and gasless transactions
+- Upgradeable contract architecture
+
+---
+
+## Repo Layout
+
+- `contracts/` — Soroban smart contracts. Includes `prediction_market`, `ipredict_token`, `referral_registry`, and `leaderboard`.
+- `frontend/` — Next.js frontend app with wallet integration, market UI, and leaderboard views.
+- `scripts/` — deployment and helper scripts for testnet/mainnet workflows.
+- `docs/` — deployment docs and contract call examples.
 
 ---
 
 ## Quick Start
 
-### Requirements
+### Prerequisites
 
-- Rust + Cargo (stable toolchain)
-- `soroban`/`wasm` toolchain for Soroban contract builds
-- Node.js 18+ and pnpm/npm/yarn
+- Rust + Cargo
+- Soroban toolchain (`soroban` + `wasm`)
+- Node.js 18+
 - Git
 
-### Clone the repo
+### Run locally
 
 ```bash
 git clone https://github.com/Steller-StellarPulse-org/StellarPulse.git
 cd StellarPulse
 ```
 
-### Run the frontend locally
+Start the frontend:
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# open http://localhost:3000
 ```
 
-### Build and test contracts
+Open `http://localhost:3000` in your browser.
+
+### Run contract tests
 
 ```bash
 cd contracts
 cargo test --workspace
 ```
 
-### Run the full test suite
+### Run frontend tests
 
 ```bash
-cd contracts && cargo test
-cd ../frontend && npm run test
+cd frontend
+npm run test
 ```
 
 ---
 
-## Repository Layout
+## Development Workflow
 
-- `contracts/` — Soroban smart contracts written in Rust. Sub-crates include `prediction_market`, `ipredict_token`, `referral_registry`, and `leaderboard`.
-- `frontend/` — Next.js 14 frontend (App Router) with Tailwind CSS and TypeScript.
-- `scripts/` — deployment and helper scripts for testnet/mainnet flows.
-
----
-
-## Development Notes
-
-- The frontend runs on `http://localhost:3000` by default.
-- Environment config lives under `frontend/src/config`.
-- Contracts are organized as independent crates for targeted testing and isolated upgrades.
-- Contracts use the Rust test harness; frontend uses Vitest.
-
-Suggested workflow:
-
-1. Change contract logic in `contracts/<crate>/src`.
+1. Update contract logic in `contracts/<crate>/src`.
 2. Run `cargo test -p <crate>`.
-3. Test frontend changes in `frontend/`.
-4. Commit focused changes with clear messages.
+3. Update frontend code in `frontend/`.
+4. Run `npm run test` and `npm run lint` as needed.
+5. Commit focused changes with clear messages.
 
 ---
 
-## Contributing
+## Deployment
 
-Contributions are welcome. Open issues for bugs or features, and use feature branches for non-trivial work.
+Deployment scripts are available under `scripts/`:
+- `deploy-testnet.sh` — testnet deployment flow
+- `deploy-mainnet.sh` — mainnet deployment flow
+- `create-mainnet-markets.sh` — create seed markets after mainnet deployment
 
-If you plan to rewrite history or force-push, coordinate with maintainers.
-
----
-
-## License
-
-This project uses the MIT license. See `LICENSE` for details.
+For contract call examples and deployed addresses, see `docs/CONTRACT_CALLS.md`.
 
 ---
 
-## Deployed Contracts (Stellar Mainnet)
+## Live Mainnet Contracts
 
-| Contract | Address | Explorer |
-|----------|---------|----------|
-| Prediction Market | `CDGNPRYTFDXJLWZE4YDKZXW4IEN2RLPSE4N7VM5HJ7NLPL2QC45GIXI5` | [stellar.expert](https://stellar.expert/explorer/public/contract/CDGNPRYTFDXJLWZE4YDKZXW4IEN2RLPSE4N7VM5HJ7NLPL2QC45GIXI5) |
-| PULSE Token | `CAYL4TKNRMXAX5ZLQGFEZ6XOC2QHTCTN5QC2SB5BEEHLVO6SDU2UBLRH` | [stellar.expert](https://stellar.expert/explorer/public/contract/CAYL4TKNRMXAX5ZLQGFEZ6XOC2QHTCTN5QC2SB5BEEHLVO6SDU2UBLRH) |
-| Referral Registry | `CAGJVX6EXMCKKWDJCQFIEJ34CZTHZOGLWJM6KQTGDEXEO723CJZ5773H` | [stellar.expert](https://stellar.expert/explorer/public/contract/CAGJVX6EXMCKKWDJCQFIEJ34CZTHZOGLWJM6KQTGDEXEO723CJZ5773H) |
-| Leaderboard | `CCWWOQSDSO3XXLCMA6A2HYRUFYVNUJZ2HPAMFQSPOB4JWYIBY2HWVTOB` | [stellar.expert](https://stellar.expert/explorer/public/contract/CCWWOQSDSO3XXLCMA6A2HYRUFYVNUJZ2HPAMFQSPOB4JWYIBY2HWVTOB) |
+| Contract | Address |
+|----------|---------|
+| Prediction Market | `CDGNPRYTFDXJLWZE4YDKZXW4IEN2RLPSE4N7VM5HJ7NLPL2QC45GIXI5` |
+| PULSE Token | `CAYL4TKNRMXAX5ZLQGFEZ6XOC2QHTCTN5QC2SB5BEEHLVO6SDU2UBLRH` |
+| Referral Registry | `CAGJVX6EXMCKKWDJCQFIEJ34CZTHZOGLWJM6KQTGDEXEO723CJZ5773H` |
+| Leaderboard | `CCWWOQSDSO3XXLCMA6A2HYRUFYVNUJZ2HPAMFQSPOB4JWYIBY2HWVTOB` |
 
-> **Network:** Stellar Mainnet (Public) | **Admin:** `GDZ4VJWNJPLNU3PAWDYX3V5XNATO7X257DPHWRPFXSCCNEUZ7QTXIIUI` | **7 seed markets live** | All contracts upgradeable
->
-> **Native XLM SAC:** `CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA`
-
----
-
-## User Validation
-
-The table below records pre-launch testnet validation from early users.
-
-| # | Wallet Address | Action | Points |
-|---|----------------|--------|--------|
-| 1 | `GDHQ6TNWZ4V2JVCDWEUVW7YKFBXCOQZRRUCT27LAKES3PGOE6JSZMSMD` | Admin — Created markets, placed bets, claimed rewards | 83 |
-| 2 | `GA5OIFR4TLRJC54B3FIDWHIQKVFGVOWQFE3NXIIGCGLSGTJRUY6RHR2Q` | Placed bets, claimed rewards, referral registration | 38 |
-| 3 | `GAIWJS35TTF2XMYGHY6AX6YBGI4IG3RWSEL2FEXV3DESW5RITGPWIIED` | Placed bets, claimed rewards, referral registration | 29 |
-| 4 | `GA7GFCGUDLWZ6DIDCNERHA5CI7MATE6NT3MKDVJKFYIM5Y543OTLO3UY` | Placed bets, referral registration | 20 |
-
-*Pre-launch testnet wallets are verifiable on Stellar Expert Testnet.*
-
----
-
-## User Feedback
-
-- **Form:** [https://forms.gle/WrTyoCzQ6LJegL8a9](https://forms.gle/WrTyoCzQ6LJegL8a9)
-- **Spreadsheet:** [https://docs.google.com/spreadsheets/d/1rGhq1rgeDPiF6hI4iDL2eFt0vUMBDA6LSm9zS2txpiA/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1rGhq1rgeDPiF6hI4iDL2eFt0vUMBDA6LSm9zS2txpiA/edit?usp=sharing)
-
-### Feedback Implementation
-
-The following updates were added based on early user validation:
-
-- Added more filtering and default sorting options to the leaderboard on Active.
-
-| User Name | Email | Wallet | Commit ID |
-|-----------|-------|--------|-----------|
-| best_bettor | `malyyen@gmail.com` | `GA7GFCGUDLWZ6DIDCNERHA5CI7MATE6NT3MKDVJKFYIM5Y543OTLO3UY` | `77c37784589046eeeb917a9015085dfa6fb26a52` |
-
----
-
-## Product Update
-
-### Fee Sponsorship and Gasless Transactions
-
-We added fee sponsorship and gasless transactions to the MVP, allowing users
-to interact with the prediction market without holding XLM for transaction
-fees. This makes the platform more inclusive and easier to use.
-
----
-
-## Features
-
-- **Binary Prediction Markets** — Bet YES or NO on any question with XLM.
-- **Inclusive Reward System** — Winners and losers earn points plus PULSE tokens.
-- **Onchain Referral Program** — Share your link, earn 0.5% of referred bets plus bonus points.
-- **Real-Time Leaderboard** — Rankings by points, volume, and win rate.
-- **Social Sharing** — One-tap sharing to X, Telegram, and WhatsApp.
-- **4 Independent Smart Contracts** — Independently testable and upgradeable.
-- **Near-Zero Fees** — 2% total (1.5% platform + 0.5% referrer).
-- **Fast Finality** — Near-instant settlement on Stellar/Soroban.
-- **Mobile-First Design** — Fully responsive UI.
-- **Non-Custodial** — Your keys, your funds.
+> Network: Stellar Mainnet (Public)
 
 ---
 
 ## Architecture
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                     Next.js 14 Frontend                        │
-│  (App Router • Tailwind CSS • Stellar Wallets Kit)             │
-└──────────────┬──────────────┬──────────────┬──────────────┬─────┘
-               │              │              │              │
-        Soroban RPC      Soroban RPC    Soroban RPC    Soroban RPC
-               │              │              │              │
-  ┌────────────▼──┐ ┌────────▼────┐ ┌───────▼──────┐ ┌────▼────────┐
-  │  Prediction   │ │  PULSE      │ │   Referral   │ │ Leaderboard │
-  │    Market     │ │    Token    │ │   Registry   │ │             │
-  │               │ │             │ │              │ │             │
-  │ create_market │ │ mint        │ │ register     │ │ add_pts     │
-  │ place_bet ────┼─┼─► mint ◄───┼─┤ credit ──────┼─┤ record_bet  │
-  │ resolve    ───┼─┼─► mint     │ │ get_referrer │ │ get_stats   │
-  │ claim      ───┼─┼─► mint     │ │ get_earnings │ │ get_top     │
-  │ cancel        │ │ transfer   │ │ is_registered│ │ get_rank    │
-  │ withdraw_fees │ │ balance    │ │              │ │             │
-  └───────────────┘ └────────────┘ └──────────────┘ └─────────────┘
-```
+StellarPulse is built as a modular, upgradeable Soroban contract system with a modern frontend.
 
-### Inter-Contract Call Flow
+### Contract responsibilities
 
-**Place Bet:** `PredictionMarket.place_bet()` → Transfers XLM via SAC →
-`ReferralRegistry.credit()` (splits fee: 0.5% to referrer, 1.5% to platform) →
-`Leaderboard.record_bet()` → `PulseToken.mint()`
+- `prediction_market` — market creation, bets, resolution, claims
+- `ipredict_token` — PULSE reward token
+- `referral_registry` — referral tracking and bonus distribution
+- `leaderboard` — leaderboards, points, and metrics
 
-**Resolve Market:** `PredictionMarket.resolve_market()` → Stores outcome onchain
+### Frontend
+
+- Connects to Stellar wallets
+- Uses Soroban RPC for contract interactions
+- Displays markets, bets, referral rewards, and leaderboard data
+- Supports testnet and mainnet configuration through env variables
+
+---
+
+## Contributing
+
+Contributions are welcome. Please open issues for bugs or feature requests.
+
+If you plan to force-push or rewrite history, coordinate with project maintainers.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE` for details.
