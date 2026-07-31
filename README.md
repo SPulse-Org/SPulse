@@ -487,3 +487,5 @@ Built by **WITTIG** for the Stellar Build-a-10M-Startup challenge.
 
 
 # StellarPulse
+T h i s   r e p o s i t o r y   h i s t o r y   w a s   c o r r e c t e d   t o   r e m o v e   e m p t y   s p a m   c o m m i t s .  
+ 
