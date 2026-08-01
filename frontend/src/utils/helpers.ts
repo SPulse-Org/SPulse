@@ -1,4 +1,4 @@
-// ── Pure Utility Functions ───────────────────────────────────────────────────
+// Pure utility functions
 
 const STROOPS_PER_XLM = 10_000_000n;
 const MILLISECOND_TIMESTAMP_THRESHOLD = 4_102_444_800;
@@ -56,37 +56,6 @@ export function timeUntil(timestamp: number): string {
   return `${diff}s`;
 }
 
-/**
- * Normalize a Unix timestamp that may be seconds or milliseconds to ms.
- * Values below ~1e12 are almost certainly seconds; above are ms.
- */
-export function toTimestampMs(timestamp: number): number {
-  if (!Number.isFinite(timestamp)) return Date.now();
-  return timestamp < 1e12 ? timestamp * 1000 : timestamp;
-}
-
-const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZoneName: "short",
-};
-
-const TIME_OPTIONS: Intl.DateTimeFormatOptions = {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZoneName: "short",
-};
-
-/**
- * Format a Unix timestamp (seconds) to a locale-aware date/time string.
- * Uses the viewer's browser locale and local timezone automatically.
- *
- * Example (en-GB): "12 Jul 2026, 14:30 GMT+1"
- * Example (en-US): "Jul 12, 2026, 10:30 AM EDT"
- */
 /** Normalize a positive Unix timestamp supplied in seconds or milliseconds. */
 export function toTimestampMs(timestamp: number): number {
   if (!Number.isFinite(timestamp) || timestamp <= 0) return Number.NaN;
@@ -103,79 +72,6 @@ export function formatDate(
   locale?: Intl.LocalesArgument,
   options: Intl.DateTimeFormatOptions = {}
 ): string {
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return "—";
-  // Guard against accidental millisecond values (> year 2100 in seconds ≈ 4_102_444_800)
-  const ms = timestamp > 4_102_444_800 ? timestamp : timestamp * 1000;
-  return new Intl.DateTimeFormat(locale, {
-    ...DATE_TIME_OPTIONS,
-    ...options,
-  }).format(new Date(ms));
-}
-
-/**
- * Format a Unix timestamp to a locale-aware time-only string.
- */
-export function formatTime(
-  timestamp: number,
-  locale?: Intl.LocalesArgument,
-  options?: Intl.DateTimeFormatOptions
-): string {
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return "—";
-  const ms = timestamp > 4_102_444_800 ? timestamp : timestamp * 1000;
-  return new Intl.DateTimeFormat(locale, {
-    ...TIME_OPTIONS,
-    ...options,
-  }).format(new Date(ms));
-}
-
-/**
- * Format an event timestamp (milliseconds) to a locale-aware date+time string.
- * Use this for MarketEvent.timestamp — it is already in milliseconds.
- */
-export function formatEventTime(timestampMs: number): string {
-  if (!Number.isFinite(timestampMs) || timestampMs <= 0) return "—";
-  return new Date(timestampMs).toLocaleString(undefined, DATE_TIME_OPTIONS);
-}
-
-/**
- * Return a human-readable relative time string from a Unix timestamp (seconds).
- * Uses the viewer's locale via Intl.RelativeTimeFormat.
- *
- * Examples: "2 hours ago", "3 days ago", "just now"
- */
-export function timeAgo(timestamp: number): string {
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return "—";
-  const ms = timestamp > 4_102_444_800 ? timestamp : timestamp * 1000;
-  const diffSeconds = Math.floor((Date.now() - ms) / 1000);
-
-  if (diffSeconds < 5) return "just now";
-
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-
-  const thresholds: [number, Intl.RelativeTimeFormatUnit][] = [
-    [60, "second"],
-    [3_600, "minute"],
-    [86_400, "hour"],
-    [604_800, "day"],
-    [2_592_000, "week"],
-    [31_536_000, "month"],
-  ];
-
-  for (const [limit, unit] of thresholds) {
-    if (diffSeconds < limit) {
-      const idx = thresholds.findIndex(([l]) => l === limit);
-      const prev = idx > 0 ? thresholds[idx - 1] : [1, "second"] as const;
-      const divisor = prev[0];
-      return rtf.format(-Math.floor(diffSeconds / divisor), unit);
-    }
-  }
-
-  return rtf.format(-Math.floor(diffSeconds / 31_536_000), "year");
-}
-
-/**
- * Calculate a winner's payout from a prediction market.
- * payout = (userNetBet / winningSideTotal) × totalPool
   const timestampMs = toTimestampMs(timestamp);
   if (!Number.isFinite(timestampMs)) return INVALID_TIMESTAMP;
 
@@ -239,10 +135,12 @@ export function timeAgo(
   );
 }
 
-/** Format an event timestamp (milliseconds) to a locale-aware date+time string.
- * Use this for `MarketEvent.timestamp` – it is already in milliseconds, do NOT multiply by 1000. */
+/** Format an event timestamp that is already in milliseconds. */
 export function formatEventTime(timestampMs: number): string {
-  if (!Number.isFinite(timestampMs) || timestampMs <= 0) return INVALID_TIMESTAMP;
+  if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
+    return INVALID_TIMESTAMP;
+  }
+
   return new Date(timestampMs).toLocaleString(undefined, {
     year: "numeric",
     month: "short",
@@ -253,9 +151,10 @@ export function formatEventTime(timestampMs: number): string {
   });
 }
 
-/** Calculate a winner's payout from a prediction market.
+/**
+ * Calculate a winner's payout from a prediction market.
  *
- * payout = (userNetBet / winningSideTotal) × totalPool
+ * payout = (userNetBet / winningSideTotal) * totalPool
  *
  * All values in XLM (not stroops).
  */
@@ -268,12 +167,7 @@ export function calculatePayout(
   return (userNetBet / winningSideTotal) * totalPool;
 }
 
-/**
- * Calculate YES/NO odds percentages from net totals.
- * Returns { yesPercent, noPercent } — each 0-100.
-/** Calculate YES/NO odds percentages from net totals.
- * Returns { yesPercent, noPercent } – each 0-100.
- */
+/** Calculate YES/NO odds percentages from net totals. */
 export function calculateOdds(
   totalYes: number,
   totalNo: number
@@ -284,9 +178,6 @@ export function calculateOdds(
   return { yesPercent, noPercent: 100 - yesPercent };
 }
 
-/**
- * Build a Stellar Expert explorer URL for transactions, accounts, or contracts.
- */
 /** Convert basis points to a percentage string. */
 export function bpsToPercent(bps: number): string {
   return `${bps / 100}%`;
@@ -298,11 +189,6 @@ export function explorerUrl(
   id: string,
   network: "public" | "testnet" = "public"
 ): string {
-  const base =
-    network === "testnet"
-      ? "https://stellar.expert/explorer/testnet"
-      : "https://stellar.expert/explorer/public";
-  return `${base}/${type}/${id}`;
   const base = `https://stellar.expert/explorer/${network}`;
   switch (type) {
     case "tx":
