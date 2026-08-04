@@ -279,12 +279,19 @@ export default function MarketDetailPage({
                   </div>
                 </div>
 
-                {claiming ? (
-                  <TxProgress step={claimStage === "idle" ? "building" : claimStage} />
-                ) : (
-                  <Button onClick={handleClaim} variant="primary" fullWidth>
-                    Claim Rewards
-                  </Button>
+                <Button
+                  onClick={handleClaim}
+                  disabled={claiming}
+                  loading={claiming}
+                  variant="primary"
+                  fullWidth
+                >
+                  {claiming ? "Claiming..." : "Claim Rewards"}
+                </Button>
+                {claiming && (
+                  <div className="mt-3">
+                    <TxProgress step={claimStage === "idle" ? "building" : claimStage} />
+                  </div>
                 )}
                 {claimError && (
                   <p className="text-sm text-accent-red mt-2">{claimError}</p>
