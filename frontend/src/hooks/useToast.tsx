@@ -43,10 +43,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Narrow viewports: bottom safe-area, full usable width. sm+: top-right stack. */}
+      {/* Toast container: bottom on mobile (safe-area aware), top-right on desktop.
+          Uses max-w-[calc(100vw-1rem)] so toasts never overflow on narrow viewports. */}
       <div
         className="fixed z-[200] pointer-events-none flex flex-col gap-2
-          left-3 right-3 bottom-[max(1rem,env(safe-area-inset-bottom))]
+          left-2 right-2 bottom-[max(0.75rem,env(safe-area-inset-bottom,0.75rem))]
           sm:left-auto sm:right-4 sm:bottom-auto sm:top-4 sm:w-auto sm:max-w-sm"
       >
         {toasts.map((t) => (
