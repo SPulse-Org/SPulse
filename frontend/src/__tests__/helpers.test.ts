@@ -6,6 +6,7 @@ import {
   displayXLM,
   explorerUrl,
   formatDate,
+  formatEventTime,
   formatTime,
   formatXLM,
   isValidAmount,
@@ -221,6 +222,43 @@ describe("timestamp helpers", () => {
   ])("formats a countdown boundary offset by %s seconds", (offset, expected) => {
     const now = Math.floor(Date.now() / 1_000);
     expect(timeUntil(now + offset)).toBe(expected);
+  });
+
+  it("formats an already-millisecond event timestamp without second conversion", () => {
+    const expected = new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    }).format(new Date(milliseconds));
+
+    expect(formatEventTime(milliseconds)).toBe(expected);
+  });
+
+  it("formats the same event instant in a different timezone", () => {
+    const expected = new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+      timeZone: "America/New_York",
+    }).format(new Date(milliseconds));
+
+    expect(formatEventTime(milliseconds)).not.toBe(expected);
+  });
+
+  it.each([
+    0,
+    -1,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+  ])("rejects invalid event timestamps %s", (value) => {
+    expect(formatEventTime(value)).toBe("—");
   });
 });
 
