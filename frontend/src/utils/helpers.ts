@@ -1,4 +1,4 @@
-// ── Pure Utility Functions ───────────────────────────────────────────────────
+// Pure utility functions
 
 const STROOPS_PER_XLM = 10_000_000n;
 const MILLISECOND_TIMESTAMP_THRESHOLD = 100_000_000_000;
@@ -57,6 +57,9 @@ export function timeUntil(timestamp: number): string {
   return `${diff}s`;
 }
 
+/** Normalize a positive Unix timestamp supplied in seconds or milliseconds. */
+export function toTimestampMs(timestamp: number): number {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return Number.NaN;
 /**
  * Normalize a positive Unix timestamp supplied in seconds or milliseconds.
  * Values below 1e11 are treated as seconds; newer millisecond timestamps are
@@ -69,6 +72,7 @@ export function toTimestampMs(timestamp: number): number {
     timestamp < MILLISECOND_TIMESTAMP_THRESHOLD
       ? timestamp * 1_000
       : timestamp;
+  return timestampMs <= MAX_DATE_TIMESTAMP_MS ? timestampMs : Number.NaN;
 
   return timestampMs <= MAX_DATE_TIMESTAMP_MS ? timestampMs : Number.NaN;
 }
@@ -108,6 +112,23 @@ export function formatDate(
   locale?: Intl.LocalesArgument,
   options: Intl.DateTimeFormatOptions = {}
 ): string {
+  const timestampMs = toTimestampMs(timestamp);
+  if (!Number.isFinite(timestampMs)) return INVALID_TIMESTAMP;
+
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+    ...options,
+  }).format(new Date(timestampMs));
+}
+
+/** Format only the local time portion of a timestamp, with its timezone label. */
+export function formatTime(
+  timestamp: number,
   return formatTimestampMs(toTimestampMs(timestamp), locale, {
     ...DATE_TIME_OPTIONS,
     ...options,
@@ -176,6 +197,38 @@ export function timeAgo(
 
   const [unit, unitSeconds] =
     units.find(([, seconds]) => absoluteSeconds >= seconds) ?? units[6];
+
+  const value =
+    Math.sign(diffSeconds) * Math.round(absoluteSeconds / unitSeconds);
+  return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+    value,
+    unit
+  );
+}
+
+/** Format an event timestamp that is already in milliseconds. */
+export function formatEventTime(timestampMs: number): string {
+  if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
+    return INVALID_TIMESTAMP;
+  }
+
+  return new Date(timestampMs).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
+/**
+ * Calculate a winner's payout from a prediction market.
+ *
+ * payout = (userNetBet / winningSideTotal) * totalPool
+ *
+ * All values in XLM (not stroops).
+ */
   const magnitude = Math.max(1, Math.round(absoluteSeconds / unitSeconds));
   const value = diffSeconds < 0 ? -magnitude : magnitude;
 
@@ -199,6 +252,7 @@ export function calculatePayout(
   return (userNetBet / winningSideTotal) * totalPool;
 }
 
+/** Calculate YES/NO odds percentages from net totals. */
 /** Calculate YES/NO percentages that always total 100. */
 export function calculateOdds(
   totalYes: number,
