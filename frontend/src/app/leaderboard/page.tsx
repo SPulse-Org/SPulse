@@ -7,7 +7,7 @@ import LeaderboardTabs from "@/components/leaderboard/LeaderboardTabs";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { FiAward } from "react-icons/fi";
-import { timeAgo, formatDate } from "@/utils/helpers";
+import LocalizedTimestamp from "@/components/ui/LocalizedTimestamp";
 
 export default function LeaderboardPage() {
   const [tab, setTab] = useState<LeaderboardTab>("top_predictors");
@@ -45,7 +45,7 @@ export default function LeaderboardPage() {
         </p>
         {!loading && lastUpdated && (
           <p className="text-xs text-slate-500">
-            Updated {timeAgo(lastUpdated)}
+            Updated <LocalizedTimestamp timestamp={lastUpdated} mode="relative" />
           </p>
         )}
       </div>
@@ -54,7 +54,7 @@ export default function LeaderboardPage() {
 
       {lastUpdated && (
         <div className="mb-3 text-right text-xs text-slate-500">
-          Last updated: {formatDate(lastUpdated)}
+          Last updated: <LocalizedTimestamp timestamp={lastUpdated} />
         </div>
       )}
 

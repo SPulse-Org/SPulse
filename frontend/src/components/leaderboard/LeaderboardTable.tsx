@@ -2,7 +2,7 @@ import React from "react";
 import type { PlayerStats } from "@/types";
 import PlayerRow from "./PlayerRow";
 import { FiUser } from "react-icons/fi";
-import { formatDate } from "@/utils/helpers";
+import LocalizedTimestamp from "@/components/ui/LocalizedTimestamp";
 
 interface LeaderboardTableProps {
   players: PlayerStats[];
@@ -49,7 +49,7 @@ export default function LeaderboardTable({
 
       {lastUpdatedAt && (
         <div className="mb-3 text-right text-xs text-slate-500">
-          Last updated: {formatDate(lastUpdatedAt)}
+          Last updated: <LocalizedTimestamp timestamp={lastUpdatedAt} />
         </div>
       )}
 
