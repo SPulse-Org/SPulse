@@ -1,7 +1,7 @@
 // Pure utility functions
 
 const STROOPS_PER_XLM = 10_000_000n;
-const MILLISECOND_TIMESTAMP_THRESHOLD = 4_102_444_800;
+const MILLISECOND_TIMESTAMP_THRESHOLD = 100_000_000_000;
 const MAX_DATE_TIMESTAMP_MS = 8_640_000_000_000_000;
 const INVALID_TIMESTAMP = "—";
 
@@ -34,16 +34,17 @@ export function truncateAddress(addr: string): string {
 
 /** Validate a bet amount against the minimum and the user's balance. */
 export function isValidAmount(amount: string, balance: number): boolean {
-  const parsed = parseFloat(amount);
+  const parsed = Number.parseFloat(amount);
   if (Number.isNaN(parsed) || parsed < 1) return false;
   return parsed <= balance;
 }
 
 /** Return a human-readable duration until a Unix-seconds timestamp. */
 export function timeUntil(timestamp: number): string {
-  const now = Math.floor(Date.now() / 1000);
-  const diff = timestamp - now;
+  if (!Number.isFinite(timestamp)) return "Ended";
 
+  const now = Math.floor(Date.now() / 1_000);
+  const diff = Math.floor(timestamp - now);
   if (diff <= 0) return "Ended";
 
   const days = Math.floor(diff / 86_400);
@@ -59,14 +60,53 @@ export function timeUntil(timestamp: number): string {
 /** Normalize a positive Unix timestamp supplied in seconds or milliseconds. */
 export function toTimestampMs(timestamp: number): number {
   if (!Number.isFinite(timestamp) || timestamp <= 0) return Number.NaN;
+/**
+ * Normalize a positive Unix timestamp supplied in seconds or milliseconds.
+ * Values below 1e11 are treated as seconds; newer millisecond timestamps are
+ * already above that boundary. Invalid or out-of-range values return NaN.
+ */
+export function toTimestampMs(timestamp: number): number {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return Number.NaN;
+
   const timestampMs =
     timestamp < MILLISECOND_TIMESTAMP_THRESHOLD
       ? timestamp * 1_000
       : timestamp;
   return timestampMs <= MAX_DATE_TIMESTAMP_MS ? timestampMs : Number.NaN;
+
+  return timestampMs <= MAX_DATE_TIMESTAMP_MS ? timestampMs : Number.NaN;
 }
 
-/** Format a timestamp in the viewer's timezone, including its timezone label. */
+const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZoneName: "short",
+};
+
+const TIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZoneName: "short",
+};
+
+function formatTimestampMs(
+  timestampMs: number,
+  locale: Intl.LocalesArgument | undefined,
+  options: Intl.DateTimeFormatOptions
+): string {
+  if (!Number.isFinite(timestampMs)) return INVALID_TIMESTAMP;
+
+  try {
+    return new Intl.DateTimeFormat(locale, options).format(new Date(timestampMs));
+  } catch {
+    return INVALID_TIMESTAMP;
+  }
+}
+
+/** Format seconds or milliseconds in the requested locale and timezone. */
 export function formatDate(
   timestamp: number,
   locale?: Intl.LocalesArgument,
@@ -89,33 +129,63 @@ export function formatDate(
 /** Format only the local time portion of a timestamp, with its timezone label. */
 export function formatTime(
   timestamp: number,
+  return formatTimestampMs(toTimestampMs(timestamp), locale, {
+    ...DATE_TIME_OPTIONS,
+    ...options,
+  });
+}
+
+/** Format only the local time portion, including its timezone label. */
+export function formatTime(
+  timestamp: number,
   locale?: Intl.LocalesArgument,
   options: Intl.DateTimeFormatOptions = {}
 ): string {
-  const timestampMs = toTimestampMs(timestamp);
-  if (!Number.isFinite(timestampMs)) return INVALID_TIMESTAMP;
-
-  return new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
+  return formatTimestampMs(toTimestampMs(timestamp), locale, {
+    ...TIME_OPTIONS,
     ...options,
-  }).format(new Date(timestampMs));
+  });
 }
 
-/** Format a timestamp relative to now while accepting seconds or milliseconds. */
+/**
+ * Format an event timestamp that is explicitly supplied in milliseconds.
+ * This separate entry point prevents accidental double conversion.
+ */
+export function formatEventTime(
+  timestampMs: number,
+  locale?: Intl.LocalesArgument,
+  options: Intl.DateTimeFormatOptions = {}
+): string {
+  if (
+    !Number.isFinite(timestampMs) ||
+    timestampMs <= 0 ||
+    timestampMs > MAX_DATE_TIMESTAMP_MS
+  ) {
+    return INVALID_TIMESTAMP;
+  }
+
+  return formatTimestampMs(timestampMs, locale, {
+    ...DATE_TIME_OPTIONS,
+    ...options,
+  });
+}
+
+/** Format a past or future timestamp relative to now. */
 export function timeAgo(
   timestamp: number,
-  locale?: Intl.LocalesArgument
+  locale?: Intl.LocalesArgument,
+  nowMs: number = Date.now()
 ): string {
   const timestampMs = toTimestampMs(timestamp);
-  if (!Number.isFinite(timestampMs)) return INVALID_TIMESTAMP;
+  if (!Number.isFinite(timestampMs) || !Number.isFinite(nowMs)) {
+    return INVALID_TIMESTAMP;
+  }
 
-  const diffSeconds = (timestampMs - Date.now()) / 1_000;
+  const diffSeconds = (timestampMs - nowMs) / 1_000;
   const absoluteSeconds = Math.abs(diffSeconds);
   if (absoluteSeconds < 5) return "just now";
 
-  const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+  const units: ReadonlyArray<readonly [Intl.RelativeTimeFormatUnit, number]> = [
     ["year", 31_536_000],
     ["month", 2_592_000],
     ["week", 604_800],
@@ -124,6 +194,7 @@ export function timeAgo(
     ["minute", 60],
     ["second", 1],
   ];
+
   const [unit, unitSeconds] =
     units.find(([, seconds]) => absoluteSeconds >= seconds) ?? units[6];
 
@@ -158,6 +229,20 @@ export function formatEventTime(timestampMs: number): string {
  *
  * All values in XLM (not stroops).
  */
+  const magnitude = Math.max(1, Math.round(absoluteSeconds / unitSeconds));
+  const value = diffSeconds < 0 ? -magnitude : magnitude;
+
+  try {
+    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+      value,
+      unit
+    );
+  } catch {
+    return INVALID_TIMESTAMP;
+  }
+}
+
+/** Calculate a winner's proportional prediction-market payout. */
 export function calculatePayout(
   userNetBet: number,
   winningSideTotal: number,
@@ -168,12 +253,14 @@ export function calculatePayout(
 }
 
 /** Calculate YES/NO odds percentages from net totals. */
+/** Calculate YES/NO percentages that always total 100. */
 export function calculateOdds(
   totalYes: number,
   totalNo: number
 ): { yesPercent: number; noPercent: number } {
   const total = totalYes + totalNo;
   if (total <= 0) return { yesPercent: 50, noPercent: 50 };
+
   const yesPercent = Math.round((totalYes / total) * 100);
   return { yesPercent, noPercent: 100 - yesPercent };
 }
@@ -190,14 +277,5 @@ export function explorerUrl(
   network: "public" | "testnet" = "public"
 ): string {
   const base = `https://stellar.expert/explorer/${network}`;
-  switch (type) {
-    case "tx":
-      return `${base}/tx/${id}`;
-    case "account":
-      return `${base}/account/${id}`;
-    case "contract":
-      return `${base}/contract/${id}`;
-    default:
-      return base;
-  }
+  return `${base}/${type}/${id}`;
 }
