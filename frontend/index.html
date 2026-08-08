@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StellarPulse | Prediction Markets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="container header-inner">
+          <a href="#hero" class="brand">StellarPulse</a>
+          <nav class="site-nav">
+            <a href="#markets">Markets</a>
+            <a href="#leaderboard">Leaderboard</a>
+            <a href="#faq">FAQ</a>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section id="hero" class="hero-section fade-up">
+          <div class="container hero-grid">
+            <div class="hero-copy">
+              <span class="hero-tag">LIVE ON STELLAR</span>
+              <h1>Sharp markets. fast XLM settlement.</h1>
+              <p>Stake on outcomes, watch live odds, settle onchain.</p>
+              <div class="hero-actions">
+                <a class="button button-primary" href="#markets">Browse</a>
+                <a class="button button-secondary" href="#leaderboard">Leaderboard</a>
+              </div>
+            </div>
+            <aside class="hero-panel fade-left">
+              <div class="panel-heading">Stats</div>
+              <div class="panel-row">
+                <div class="panel-value">
+                  <span>Markets</span>
+                  <strong>8</strong>
+                </div>
+                <div class="panel-value">
+                  <span>Settle</span>
+                  <strong>7 sec</strong>
+                </div>
+                <div class="panel-value">
+                  <span>Fee</span>
+                  <strong>1.5%</strong>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="stats" class="section-block fade-up">
+          <div class="container stats-grid">
+            <article class="stat-card">
+              <strong>8 live markets</strong>
+              <p>Outcomes update in real time.</p>
+            </article>
+            <article class="stat-card">
+              <strong>132k XLM traded</strong>
+              <p>Volume across active positions.</p>
+            </article>
+            <article class="stat-card">
+              <strong>1.5% fee</strong>
+              <p>Transparent, fixed platform rate.</p>
+            </article>
+            <article class="stat-card">
+              <strong>7 sec settle</strong>
+              <p>Finalized onchain without delay.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="markets" class="section-block section-compact fade-up">
+          <div class="container section-header">
+            <p class="eyebrow">Markets</p>
+            <h2>Live outcomes</h2>
+          </div>
+          <div id="market-list" class="cards-grid"></div>
+        </section>
+
+        <section id="how" class="section-block section-alt fade-up">
+          <div class="container section-header">
+            <p class="eyebrow">How it works</p>
+            <h2>Three steps to settle</h2>
+          </div>
+          <div class="step-grid">
+            <article class="feature-tile">
+              <strong>Open market</strong>
+              <p>Pick a live event and view the odds.</p>
+            </article>
+            <article class="feature-tile">
+              <strong>Stake XLM</strong>
+              <p>Lock in YES or NO with a wallet.</p>
+            </article>
+            <article class="feature-tile">
+              <strong>Settle onchain</strong>
+              <p>Resolved automatically after close.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="leaderboard" class="section-block section-alt fade-up">
+          <div class="container section-header">
+            <p class="eyebrow">Leaderboard</p>
+            <h2>Top traders</h2>
+          </div>
+          <div id="leaderboard-list" class="cards-grid"></div>
+        </section>
+
+        <section id="faq" class="section-block fade-up">
+          <div class="container section-header">
+            <p class="eyebrow">FAQ</p>
+            <h2>Quick answers</h2>
+          </div>
+          <div id="faq-list" class="cards-grid"></div>
+        </section>
+      </main>
+
+      <footer class="site-footer fade-up">
+        <div class="container footer-inner">
+          <div>
+            <p class="footer-brand">StellarPulse</p>
+            <p>Onchain prediction markets with a sharp black and green interface.</p>
+          </div>
+          <small>© 2026 StellarPulse</small>
+        </div>
+      </footer>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
