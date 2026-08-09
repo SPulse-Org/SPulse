@@ -13,7 +13,7 @@
 #   4. Wires the contracts together (initialize calls)
 #   5. Sets minters on the token contract
 #   6. Funds deployer via Friendbot if balance is low
-#   7. Writes all contract IDs to deploy-output.json and .env.local patch
+#   7. Writes all public contract IDs to deploy-output.json
 #
 # Security:
 #   - Secret key is only used via --source-account flag — never printed
@@ -31,11 +31,11 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-info()    { echo -e "${BLUE}[INFO]${NC} $*"; }
-success() { echo -e "${GREEN}[OK]${NC}   $*"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
+info()    { echo -e "${BLUE}[INFO]${NC} $*" >&2; }
+success() { echo -e "${GREEN}[OK]${NC}   $*" >&2; }
+warn()    { echo -e "${YELLOW}[WARN]${NC} $*" >&2; }
 error()   { echo -e "${RED}[ERR]${NC}  $*" >&2; exit 1; }
-step()    { echo -e "\n${BOLD}━━━ $* ━━━${NC}"; }
+step()    { echo -e "\n${BOLD}━━━ $* ━━━${NC}" >&2; }
 
 # ── Locate repo root ───────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -72,12 +72,12 @@ XLM_SAC_TESTNET="CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
 step "Importing deployer identity"
 
 # Remove any stale identity first
-stellar keys rm PULSE-deployer 2>/dev/null || true
+stellar keys rm --force PULSE-deployer 2>/dev/null || true
 
 # Add the secret key to the local stellar keystore (file at ~/.config/stellar/identity/)
 echo "$DEPLOYER_SECRET" | stellar keys add PULSE-deployer --secret-key 2>&1
 
-DEPLOYER_PUBLIC=$(stellar keys show PULSE-deployer)
+DEPLOYER_PUBLIC=$(stellar keys public-key PULSE-deployer)
 info "Deployer: $DEPLOYER_PUBLIC"
 
 # ── Add testnet network config if not already present ─────────────────────────
@@ -112,7 +112,7 @@ fi
 # ── Build contracts ────────────────────────────────────────────────────────────
 step "Building WASM (release)"
 cd "$CONTRACTS_DIR"
-cargo build --target wasm32v1-none --release --quiet 2>&1
+cargo +1.91.1 build --target wasm32v1-none --release --quiet 2>&1
 success "Build complete"
 
 WASM_DIR="$CONTRACTS_DIR/target/wasm32v1-none/release"
@@ -231,6 +231,18 @@ stellar contract invoke \
   --xlm_sac "$XLM_SAC_TESTNET"
 success "prediction_market initialized"
 
+# The optimized leaderboard mints rewards internally, so it must know the
+# token contract before referral registration or market claims can reward users.
+info "Connecting leaderboard to PULSE_token..."
+stellar contract invoke \
+  --network "$NETWORK" \
+  --source-account PULSE-deployer \
+  --id "$LEADERBOARD_ID" \
+  -- set_token \
+  --admin "$DEPLOYER_PUBLIC" \
+  --token_contract "$TOKEN_ID"
+success "leaderboard token contract configured"
+
 # ── Set minters on token contract ──────────────────────────────────────────────
 step "Configuring token minters"
 
@@ -252,6 +264,15 @@ stellar contract invoke \
   --minter "$REFERRAL_ID"
 success "referral_id is now a token minter"
 
+info "Setting leaderboard contract as minter..."
+stellar contract invoke \
+  --network "$NETWORK" \
+  --source-account PULSE-deployer \
+  --id "$TOKEN_ID" \
+  -- set_minter \
+  --minter "$LEADERBOARD_ID"
+success "leaderboard_id is now a token minter"
+
 # ── Optional: add resolver ─────────────────────────────────────────────────────
 if [[ -n "${RESOLVER_PUBLIC_KEY:-}" ]]; then
   step "Adding resolver"
@@ -268,9 +289,9 @@ fi
 # ── Optional: set up sponsor as fee recipient ──────────────────────────────────
 if [[ -n "${SPONSOR_SECRET:-}" ]]; then
   step "Configuring fee sponsorship"
-  SPONSOR_PUBLIC=$(stellar keys show PULSE-deployer 2>/dev/null || \
+  SPONSOR_PUBLIC=$(stellar keys public-key PULSE-deployer 2>/dev/null || \
     stellar keys generate PULSE-sponsor --secret-key <<< "$SPONSOR_SECRET" && \
-    stellar keys show PULSE-sponsor)
+    stellar keys public-key PULSE-sponsor)
   info "Sponsor: $SPONSOR_PUBLIC"
 fi
 
@@ -294,57 +315,6 @@ cat > "$ROOT/deploy-output.json" <<EOF
 EOF
 success "deploy-output.json written"
 
-# Patch frontend .env.local with the new contract IDs
-ENV_FILE="$FRONTEND_DIR/.env.local"
-ENV_PATCH="$ROOT/env-patch-testnet.txt"
-
-cat > "$ENV_PATCH" <<EOF
-# ── Paste these lines into frontend/.env.local ────────────────────────────────
-NEXT_PUBLIC_MARKET_CONTRACT_ID=$MARKET_ID
-NEXT_PUBLIC_TOKEN_CONTRACT_ID=$TOKEN_ID
-NEXT_PUBLIC_REFERRAL_CONTRACT_ID=$REFERRAL_ID
-NEXT_PUBLIC_LEADERBOARD_CONTRACT_ID=$LEADERBOARD_ID
-NEXT_PUBLIC_XLM_SAC_ID=$XLM_SAC_TESTNET
-NEXT_PUBLIC_ADMIN_PUBLIC_KEY=$DEPLOYER_PUBLIC
-EOF
-
-# Auto-update .env.local if it exists
-if [[ -f "$ENV_FILE" ]]; then
-  python3 - "$ENV_FILE" "$MARKET_ID" "$TOKEN_ID" "$REFERRAL_ID" "$LEADERBOARD_ID" \
-    "$XLM_SAC_TESTNET" "$DEPLOYER_PUBLIC" <<'PYEOF'
-import sys, re
-
-env_file, market, token, referral, leaderboard, xlm_sac, admin = sys.argv[1:]
-
-with open(env_file, 'r') as f:
-    content = f.read()
-
-replacements = {
-    'NEXT_PUBLIC_MARKET_CONTRACT_ID': market,
-    'NEXT_PUBLIC_TOKEN_CONTRACT_ID': token,
-    'NEXT_PUBLIC_REFERRAL_CONTRACT_ID': referral,
-    'NEXT_PUBLIC_LEADERBOARD_CONTRACT_ID': leaderboard,
-    'NEXT_PUBLIC_XLM_SAC_ID': xlm_sac,
-    'NEXT_PUBLIC_ADMIN_PUBLIC_KEY': admin,
-}
-
-for key, val in replacements.items():
-    pattern = rf'^({re.escape(key)})=.*$'
-    replacement = f'{key}={val}'
-    if re.search(pattern, content, re.MULTILINE):
-        content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
-    else:
-        content += f'\n{replacement}\n'
-
-with open(env_file, 'w') as f:
-    f.write(content)
-print("Updated .env.local")
-PYEOF
-  success "frontend/.env.local updated automatically"
-else
-  warn ".env.local not found — copy env-patch-testnet.txt values manually"
-fi
-
 # ── Summary ────────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
@@ -362,7 +332,7 @@ echo -e "  Explorer: https://testnet.stellar.expert/explorer/testnet"
 echo -e "  Output:   deploy-output.json"
 echo ""
 echo -e "  ${YELLOW}Next steps:${NC}"
-echo -e "  1. cd frontend && npm run dev   (verify frontend connects)"
+echo -e "  1. cd frontend && python -m http.server 8080"
 echo -e "  2. bash scripts/smoke-test.sh   (run quick function tests)"
 echo -e "  3. Open the app and place a test bet"
 echo ""

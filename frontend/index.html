@@ -1,136 +1,158 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StellarPulse | Prediction Markets</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="StellarPulse — a real-time view of prediction markets and the Stellar network." />
+    <meta name="theme-color" content="#07110f" />
+    <title>StellarPulse — Live markets on Stellar</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="product.css" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="site-header">
-        <div class="container header-inner">
-          <a href="#hero" class="brand">StellarPulse</a>
-          <nav class="site-nav">
-            <a href="#markets">Markets</a>
-            <a href="#leaderboard">Leaderboard</a>
-            <a href="#faq">FAQ</a>
-          </nav>
-        </div>
-      </header>
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6" /></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5" /></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2" /></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 16l9 5 9-5" /></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.9 8.2 7 10 4.1-1.8 7-5.4 7-10V6l-7-3Z" /><path d="m9 12 2 2 4-4" /></symbol>
+      <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 6h15a2 2 0 0 1 2 2v11H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h13" /><path d="M16 11h5v4h-5a2 2 0 0 1 0-4Z" /></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-9 9" /><path d="M18 13v6H5V6h6" /></symbol>
+      <symbol id="i-zap" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z" /></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 9-3 3 3 3m8-6 3 3-3 3m-2-9-4 12" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></symbol>
+      <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6" /></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" /><path d="M8 6H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 13v4m-4 3h8" /></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M3 20v-2a5 5 0 0 1 10 0v2m2-14a3 3 0 0 1 0 6m2 3a5 5 0 0 1 4 5" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.8 9a2.4 2.4 0 1 1 3.3 2.2c-.8.4-1.1.9-1.1 1.8m0 3h.01" /></symbol>
+    </svg>
 
-      <main>
-        <section id="hero" class="hero-section fade-up">
-          <div class="container hero-grid">
-            <div class="hero-copy">
-              <span class="hero-tag">LIVE ON STELLAR</span>
-              <h1>Sharp markets. fast XLM settlement.</h1>
-              <p>Stake on outcomes, watch live odds, settle onchain.</p>
-              <div class="hero-actions">
-                <a class="button button-primary" href="#markets">Browse</a>
-                <a class="button button-secondary" href="#leaderboard">Leaderboard</a>
-              </div>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="#top" aria-label="StellarPulse home">
+          <span class="brand-mark"><svg><use href="#i-pulse" /></svg></span>
+          <span>Stellar<span>Pulse</span></span>
+        </a>
+        <button class="menu-button" type="button" aria-label="Open navigation" aria-expanded="false"><svg><use href="#i-menu" /></svg></button>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="#markets">Markets</a><a href="#trade">Trade</a><a href="#activity">Activity</a><a href="#how">How it works</a><a href="#faq">FAQ</a>
+        </nav>
+        <button class="button button-quiet nav-cta wallet-button" id="connect-wallet" type="button"><svg><use href="#i-wallet" /></svg><span>Connect wallet</span></button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <div class="live-label"><span class="live-dot"></span><span id="connection-label">Connecting to Stellar</span></div>
+            <h1>Trade your view of <span>what happens next.</span></h1>
+            <p>Clear, fast prediction markets settled on Stellar. Follow live signals, choose an outcome, and keep control of your assets.</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#markets">Browse markets <svg><use href="#i-arrow" /></svg></a>
+              <a class="text-button" href="#how">See how it works</a>
             </div>
-            <aside class="hero-panel fade-left">
-              <div class="panel-heading">Stats</div>
-              <div class="panel-row">
-                <div class="panel-value">
-                  <span>Markets</span>
-                  <strong>8</strong>
-                </div>
-                <div class="panel-value">
-                  <span>Settle</span>
-                  <strong>7 sec</strong>
-                </div>
-                <div class="panel-value">
-                  <span>Fee</span>
-                  <strong>1.5%</strong>
-                </div>
-              </div>
-            </aside>
+            <p class="updated-line"><svg><use href="#i-refresh" /></svg> Data refreshed <time id="last-updated">—</time></p>
           </div>
-        </section>
-
-        <section id="stats" class="section-block fade-up">
-          <div class="container stats-grid">
-            <article class="stat-card">
-              <strong>8 live markets</strong>
-              <p>Outcomes update in real time.</p>
-            </article>
-            <article class="stat-card">
-              <strong>132k XLM traded</strong>
-              <p>Volume across active positions.</p>
-            </article>
-            <article class="stat-card">
-              <strong>1.5% fee</strong>
-              <p>Transparent, fixed platform rate.</p>
-            </article>
-            <article class="stat-card">
-              <strong>7 sec settle</strong>
-              <p>Finalized onchain without delay.</p>
-            </article>
-          </div>
-        </section>
-
-        <section id="markets" class="section-block section-compact fade-up">
-          <div class="container section-header">
-            <p class="eyebrow">Markets</p>
-            <h2>Live outcomes</h2>
-          </div>
-          <div id="market-list" class="cards-grid"></div>
-        </section>
-
-        <section id="how" class="section-block section-alt fade-up">
-          <div class="container section-header">
-            <p class="eyebrow">How it works</p>
-            <h2>Three steps to settle</h2>
-          </div>
-          <div class="step-grid">
-            <article class="feature-tile">
-              <strong>Open market</strong>
-              <p>Pick a live event and view the odds.</p>
-            </article>
-            <article class="feature-tile">
-              <strong>Stake XLM</strong>
-              <p>Lock in YES or NO with a wallet.</p>
-            </article>
-            <article class="feature-tile">
-              <strong>Settle onchain</strong>
-              <p>Resolved automatically after close.</p>
-            </article>
-          </div>
-        </section>
-
-        <section id="leaderboard" class="section-block section-alt fade-up">
-          <div class="container section-header">
-            <p class="eyebrow">Leaderboard</p>
-            <h2>Top traders</h2>
-          </div>
-          <div id="leaderboard-list" class="cards-grid"></div>
-        </section>
-
-        <section id="faq" class="section-block fade-up">
-          <div class="container section-header">
-            <p class="eyebrow">FAQ</p>
-            <h2>Quick answers</h2>
-          </div>
-          <div id="faq-list" class="cards-grid"></div>
-        </section>
-      </main>
-
-      <footer class="site-footer fade-up">
-        <div class="container footer-inner">
-          <div>
-            <p class="footer-brand">StellarPulse</p>
-            <p>Onchain prediction markets with a sharp black and green interface.</p>
-          </div>
-          <small>© 2026 StellarPulse</small>
+          <aside class="signal-card" aria-label="Live XLM market signal">
+            <div class="signal-top"><span>Live asset</span><span class="asset-code">XLM / USD</span></div>
+            <div class="price-row"><strong id="xlm-price">—</strong><span id="xlm-change" class="change">Loading</span></div>
+            <div class="mini-chart" id="price-chart" aria-label="XLM seven day price chart"><span class="chart-loading">Fetching market data…</span></div>
+            <div class="signal-meta"><span>7-day range</span><strong id="price-range">—</strong></div>
+            <p class="data-source">Market data from CoinGecko</p>
+          </aside>
         </div>
-      </footer>
-    </div>
+      </section>
+
+      <section id="network" class="network-strip" aria-labelledby="network-title">
+        <div class="container">
+          <div class="strip-heading"><div><span class="eyebrow">Network pulse</span><h2 id="network-title">Stellar, right now</h2></div><span id="network-state" class="status-pill">Connecting</span></div>
+          <div class="metric-grid">
+            <article><svg><use href="#i-layers" /></svg><div><span>Latest ledger</span><strong id="latest-ledger">—</strong></div></article>
+            <article><svg><use href="#i-clock" /></svg><div><span>Ledger age</span><strong id="ledger-age">—</strong></div></article>
+            <article><svg><use href="#i-chart" /></svg><div><span>Operations / ledger</span><strong id="operation-count">—</strong></div></article>
+            <article><svg><use href="#i-globe" /></svg><div><span>Network</span><strong>Public mainnet</strong></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="markets" class="section container">
+        <div class="section-heading"><div><span class="eyebrow">Open questions</span><h2>Markets in focus</h2><p>Sample market interfaces informed by live XLM pricing. Trading is not enabled in this preview.</p></div><div class="filter-group" role="group" aria-label="Filter markets"><button class="active" data-filter="all">All</button><button data-filter="crypto">Crypto</button><button data-filter="network">Network</button></div></div>
+        <div id="market-list" class="market-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="trade" class="section trade-section">
+        <div class="container">
+          <div class="section-heading"><div><span class="eyebrow">Trading workspace</span><h2>Take a position</h2><p>Choose a market above or use the selected market below to preview a position.</p></div><span class="demo-notice"><svg><use href="#i-help" /></svg> Simulation mode</span></div>
+          <div class="trade-layout">
+            <div class="trade-market-panel">
+              <div class="trade-title-row"><div><span id="trade-category" class="category">Crypto</span><h3 id="trade-title">Will XLM close above $0.50 this month?</h3></div><span id="trade-status" class="status-pill online">Open</span></div>
+              <p id="trade-detail">Resolves using the CoinGecko XLM/USD daily close at 23:59 UTC on the final day of the month.</p>
+              <div class="trade-chart-wrap"><div class="trade-chart-head"><span>Market probability</span><strong id="trade-probability">54% Yes</strong></div><div class="large-probability"><span id="trade-probability-bar" style="width:54%"></span></div><div class="chart-scale"><span>0%</span><span>50%</span><span>100%</span></div></div>
+              <div class="resolution-grid"><div><span>Resolution source</span><strong>CoinGecko</strong></div><div><span>Closing</span><strong id="trade-close">Month end</strong></div><div><span>Settlement</span><strong>Stellar mainnet</strong></div></div>
+            </div>
+            <form id="order-form" class="order-panel">
+              <div class="order-head"><h3>Order preview</h3><span>XLM</span></div>
+              <div class="wallet-panel" id="wallet-panel">
+                <div class="wallet-panel-icon"><svg><use href="#i-wallet" /></svg></div>
+                <div class="wallet-panel-copy"><strong id="wallet-panel-title">Wallet not connected</strong><span id="wallet-panel-detail">Connect Freighter on Stellar testnet</span></div>
+                <button type="button" id="wallet-panel-action">Connect</button>
+              </div>
+              <fieldset><legend>Choose an outcome</legend><div class="outcome-buttons"><button type="button" class="outcome-button yes-choice active" data-outcome="yes"><span>Yes</span><strong id="yes-price">54%</strong></button><button type="button" class="outcome-button no-choice" data-outcome="no"><span>No</span><strong id="no-price">46%</strong></button></div></fieldset>
+              <label class="amount-label" for="stake-amount"><span>Stake amount</span><span>Demo balance: 1,000 XLM</span></label>
+              <div class="amount-input"><input id="stake-amount" type="number" min="1" max="1000" step="1" value="100" required /><span>XLM</span></div>
+              <div class="quick-amounts"><button type="button" data-amount="25">25</button><button type="button" data-amount="50">50</button><button type="button" data-amount="100">100</button><button type="button" data-amount="250">250</button></div>
+              <dl class="order-summary"><div><dt>Average price</dt><dd id="average-price">0.54 XLM</dd></div><div><dt>Potential return</dt><dd id="potential-return">185.19 XLM</dd></div><div><dt>Potential profit</dt><dd id="potential-profit">85.19 XLM</dd></div></dl>
+              <button class="button button-primary submit-order" type="submit">Preview position <svg><use href="#i-arrow" /></svg></button>
+              <p class="order-disclaimer">No funds will move. This interface demonstrates the intended trading flow.</p>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="activity" class="section container">
+        <div class="section-heading"><div><span class="eyebrow">Your dashboard</span><h2>Positions and activity</h2><p>Previewed positions appear here and are stored only in this browser session.</p></div><div class="dashboard-tabs"><button class="active" data-dashboard="positions">Positions</button><button data-dashboard="feed">Market feed</button></div></div>
+        <div id="positions-view" class="dashboard-view"><div id="position-list" class="position-list"><div class="empty-state"><svg><use href="#i-activity" /></svg><h3>No positions yet</h3><p>Choose a market and preview your first position.</p><a href="#trade" class="button button-quiet">Open trading workspace</a></div></div></div>
+        <div id="feed-view" class="dashboard-view" hidden><div class="activity-table"><div class="activity-row activity-head"><span>Market</span><span>Side</span><span>Amount</span><span>Time</span></div><div class="activity-row"><span>XLM monthly close</span><strong class="yes">Yes</strong><span>240 XLM</span><time>Just now</time></div><div class="activity-row"><span>Ledger milestone</span><strong class="no">No</strong><span>85 XLM</span><time>2 min ago</time></div><div class="activity-row"><span>Ledger close speed</span><strong class="yes">Yes</strong><span>120 XLM</span><time>5 min ago</time></div></div></div>
+      </section>
+
+      <section class="category-band">
+        <div class="container category-grid"><div><span class="eyebrow">Explore more</span><h2>Markets for every signal</h2></div><article><svg><use href="#i-chart" /></svg><h3>Crypto</h3><p>Prices, adoption, and ecosystem milestones.</p></article><article><svg><use href="#i-globe" /></svg><h3>World events</h3><p>Clear questions tied to verifiable outcomes.</p></article><article><svg><use href="#i-code" /></svg><h3>Technology</h3><p>Products, protocols, and network progress.</p></article></div>
+      </section>
+
+      <section id="how" class="section how-section">
+        <div class="container"><div class="section-heading compact"><div><span class="eyebrow">Simple by design</span><h2>From signal to settlement</h2></div></div>
+          <div class="steps">
+            <article><span>01</span><svg><use href="#i-wallet" /></svg><h3>Connect</h3><p>Link a compatible Stellar wallet. Your keys stay with you.</p></article>
+            <article><span>02</span><svg><use href="#i-chart" /></svg><h3>Choose</h3><p>Review the question, resolution source, odds, and closing time.</p></article>
+            <article><span>03</span><svg><use href="#i-zap" /></svg><h3>Trade</h3><p>Select an outcome and confirm the position in your wallet.</p></article>
+            <article><span>04</span><svg><use href="#i-shield" /></svg><h3>Settle</h3><p>Verified results determine settlement transparently onchain.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="about" class="section container about-panel">
+        <div><span class="eyebrow">Built for clarity</span><h2>Less noise. Better decisions.</h2></div>
+        <div class="about-copy"><p>StellarPulse is a product concept for transparent prediction markets on Stellar. This preview reads public network and pricing data in real time; the displayed markets are demonstrations, not active offers.</p><a href="https://stellar.org" target="_blank" rel="noreferrer">Learn about Stellar <svg><use href="#i-external" /></svg></a></div>
+      </section>
+
+      <section id="faq" class="section faq-section">
+        <div class="container faq-layout"><div><span class="eyebrow">Questions, answered</span><h2>Know before you trade</h2><p>Prediction markets reward correct outcomes, but every position carries risk.</p></div><div class="faq-list"><details open><summary>What is a prediction market?<svg><use href="#i-arrow" /></svg></summary><p>A market where participants take positions on verifiable future outcomes. Prices can reflect the crowd's current estimate of probability.</p></details><details><summary>Is this page processing real trades?<svg><use href="#i-arrow" /></svg></summary><p>No. Live price and network data are real, while orders and positions on this static preview are simulations.</p></details><details><summary>How would a market resolve?<svg><use href="#i-arrow" /></svg></summary><p>Each market identifies its resolution criteria and source before trading begins. The verified result determines the winning outcome.</p></details><details><summary>Why use Stellar?<svg><use href="#i-arrow" /></svg></summary><p>Stellar offers fast ledger settlement and low network fees, making it a strong foundation for frequent, small-value market activity.</p></details></div></div>
+      </section>
+
+      <section class="cta-section"><div class="container cta-panel"><div><span class="eyebrow">Ready to explore?</span><h2>Put your market instinct to work.</h2><p>Start with a demonstration position and see the full product flow.</p></div><a href="#trade" class="button button-primary">Try the trading demo <svg><use href="#i-arrow" /></svg></a></div></section>
+    </main>
+
+    <footer><div class="container footer-inner"><a class="brand" href="#top"><span class="brand-mark"><svg><use href="#i-pulse" /></svg></span><span>Stellar<span>Pulse</span></span></a><p>Live public data. Demonstration markets only.</p><span>© <span id="year"></span> StellarPulse</span></div></footer>
+    <script type="module" src="wallet.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

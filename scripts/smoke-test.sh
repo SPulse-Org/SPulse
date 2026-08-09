@@ -41,12 +41,13 @@ if [[ ! -f "$OUTPUT" ]]; then
   exit 1
 fi
 
-MARKET_ID=$(python3 -c "import json; d=json.load(open('$OUTPUT')); print(d['contracts']['market'])")
-TOKEN_ID=$(python3 -c "import json; d=json.load(open('$OUTPUT')); print(d['contracts']['token'])")
-LEADERBOARD_ID=$(python3 -c "import json; d=json.load(open('$OUTPUT')); print(d['contracts']['leaderboard'])")
-REFERRAL_ID=$(python3 -c "import json; d=json.load(open('$OUTPUT')); print(d['contracts']['referral'])")
-XLM_SAC=$(python3 -c "import json; d=json.load(open('$OUTPUT')); print(d['xlmSac'])")
-ADMIN=$(python3 -c "import json; d=json.load(open('$OUTPUT')); print(d['deployer'])")
+cd "$ROOT"
+MARKET_ID=$(python3 -c "import json; d=json.load(open('deploy-output.json')); print(d['contracts']['market'])")
+TOKEN_ID=$(python3 -c "import json; d=json.load(open('deploy-output.json')); print(d['contracts']['token'])")
+LEADERBOARD_ID=$(python3 -c "import json; d=json.load(open('deploy-output.json')); print(d['contracts']['leaderboard'])")
+REFERRAL_ID=$(python3 -c "import json; d=json.load(open('deploy-output.json')); print(d['contracts']['referral'])")
+XLM_SAC=$(python3 -c "import json; d=json.load(open('deploy-output.json')); print(d['xlmSac'])")
+ADMIN=$(python3 -c "import json; d=json.load(open('deploy-output.json')); print(d['deployer'])")
 
 NETWORK="testnet"
 FRIENDBOT="https://friendbot.stellar.org"
@@ -63,14 +64,14 @@ echo ""
 # ── Helper: generate + fund a fresh test account ──────────────────────────────
 make_account() {
   local ALIAS="$1"
-  stellar keys rm "$ALIAS" 2>/dev/null || true
-  stellar keys generate "$ALIAS" --network "$NETWORK" --fund 2>&1 | grep -v "^$" || true
-  stellar keys show "$ALIAS"
+  stellar keys rm --force "$ALIAS" 2>/dev/null || true
+  stellar keys generate "$ALIAS" --network "$NETWORK" --fund >&2
+  stellar keys public-key "$ALIAS"
 }
 
 # ── Helper: invoke contract and capture output ─────────────────────────────────
 invoke() {
-  stellar contract invoke \
+  stellar -q contract invoke \
     --network "$NETWORK" \
     --source-account PULSE-deployer \
     "$@" 2>&1
@@ -78,7 +79,7 @@ invoke() {
 
 invoke_as() {
   local SRC="$1"; shift
-  stellar contract invoke \
+  stellar -q contract invoke \
     --network "$NETWORK" \
     --source-account "$SRC" \
     "$@" 2>&1
@@ -279,18 +280,21 @@ for i in $(seq 1 13); do
   printf "  Waited ${i}0s...\r"
 
   # Try to resolve — if MarketNotExpired (#6) it's not time yet
+  set +e
   RESOLVE_OUT=$(invoke --id "$MARKET_ID" \
     -- resolve_market \
     --caller "$ADMIN" \
     --market_id "$MARKET_NUM" \
-    --outcome true 2>&1 || true)
+    --outcome true 2>&1)
+  RESOLVE_STATUS=$?
+  set -e
 
-  if echo "$RESOLVE_OUT" | grep -q "Error(Contract, #6)"; then
+  if [[ "$RESOLVE_STATUS" -ne 0 ]] && echo "$RESOLVE_OUT" | grep -q "Error(Contract, #6)"; then
     info "Not expired yet, retrying..."
     continue
   fi
 
-  if echo "$RESOLVE_OUT" | grep -qiE "error|panic"; then
+  if [[ "$RESOLVE_STATUS" -ne 0 ]]; then
     fail "resolve_market error: $RESOLVE_OUT"
     break
   fi
@@ -320,7 +324,7 @@ else
   fail "Leaderboard points: $ALICE_FINAL_PTS (expected ≥35)"
 fi
 
-ALICE_TOKEN_BAL=$(invoke --id "$TOKEN_ID" -- balance --id "$ALICE" 2>&1 | tr -d '"' | xargs)
+ALICE_TOKEN_BAL=$(invoke --id "$TOKEN_ID" -- balance --account "$ALICE" 2>&1 | tr -d '"' | xargs)
 pass "PULSE token balance: $ALICE_TOKEN_BAL (expected 11_0000000 = 1 welcome + 10 win)"
 
 # ── 10. Bob claims as loser ────────────────────────────────────────────────────
@@ -332,7 +336,7 @@ invoke_as smoke-bob --id "$MARKET_ID" \
   --market_id "$MARKET_NUM" > /dev/null
 
 BOB_PTS=$(invoke --id "$LEADERBOARD_ID" -- get_points --user "$BOB" 2>&1 | tr -d '"' | xargs)
-BOB_TOKENS=$(invoke --id "$TOKEN_ID" -- balance --id "$BOB" 2>&1 | tr -d '"' | xargs)
+BOB_TOKENS=$(invoke --id "$TOKEN_ID" -- balance --account "$BOB" 2>&1 | tr -d '"' | xargs)
 pass "Bob leaderboard points: $BOB_PTS (expected 10)"
 pass "Bob PULSE tokens: $BOB_TOKENS (expected 2_0000000)"
 
@@ -413,8 +417,8 @@ fi
 # ── Clean up test identities ───────────────────────────────────────────────────
 echo ""
 info "Cleaning up test key identities..."
-stellar keys rm smoke-alice 2>/dev/null || true
-stellar keys rm smoke-bob 2>/dev/null || true
-stellar keys rm smoke-charlie 2>/dev/null || true
+stellar keys rm --force smoke-alice 2>/dev/null || true
+stellar keys rm --force smoke-bob 2>/dev/null || true
+stellar keys rm --force smoke-charlie 2>/dev/null || true
 success "Test identities removed"
 
