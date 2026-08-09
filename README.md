@@ -68,9 +68,13 @@ Future pushes to `main` will trigger new Netlify deployments automatically. Afte
 ## Frontend files
 
 - `frontend/index.html` — page structure and inline SVG icon library.
+- `frontend/markets.html` — searchable and filterable market catalog.
+- `frontend/leaderboard.html` — community ranking page.
 - `frontend/styles.css` — core theme and responsive layout.
 - `frontend/product.css` — trading workspace, dashboard, FAQ, and expanded product sections.
+- `frontend/pages.css` — shared styling for dedicated application pages.
 - `frontend/script.js` — live data, market filters, trading simulation, and dashboard interactions.
+- `frontend/pages.js` — market catalog and leaderboard rendering.
 - `frontend/wallet.js` — Freighter connection, testnet validation, balance display, and Friendbot funding.
 
 ## Connect a wallet

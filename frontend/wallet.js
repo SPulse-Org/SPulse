@@ -1,10 +1,3 @@
-import {
-  getAddress,
-  getNetwork,
-  isConnected,
-  requestAccess,
-} from "https://esm.sh/@stellar/freighter-api@5.0.0?bundle";
-
 const HORIZON_TESTNET = "https://horizon-testnet.stellar.org";
 const FRIENDbot = "https://friendbot.stellar.org";
 const TESTNET_PASSPHRASE = "Test SDF Network ; September 2015";
@@ -14,6 +7,18 @@ const connectButton = document.querySelector("#connect-wallet");
 const panelAction = document.querySelector("#wallet-panel-action");
 const panelTitle = document.querySelector("#wallet-panel-title");
 const panelDetail = document.querySelector("#wallet-panel-detail");
+let apiPromise;
+
+function loadApi() {
+  if (!apiPromise) {
+    apiPromise = import("https://esm.sh/@stellar/freighter-api@5.0.0?bundle")
+      .catch(() => {
+        apiPromise = null;
+        throw new Error("Wallet service could not load. Check your connection or browser privacy settings.");
+      });
+  }
+  return apiPromise;
+}
 
 function shorten(address) {
   return address ? `${address.slice(0, 5)}…${address.slice(-5)}` : "";
@@ -68,6 +73,7 @@ async function loadBalance() {
 }
 
 async function validateNetwork() {
+  const { getNetwork } = await loadApi();
   const result = await getNetwork();
   if (result.error) throw new Error(errorMessage(result.error));
   state.network = result.network;
@@ -79,6 +85,7 @@ async function validateNetwork() {
 async function connect() {
   setBusy("Connecting…");
   try {
+    const { isConnected, requestAccess } = await loadApi();
     const installed = await isConnected();
     if (installed.error || !installed.isConnected) {
       throw new Error("Freighter is not installed. Install it from freighter.app first.");
@@ -99,6 +106,7 @@ async function connect() {
 
 async function restore() {
   try {
+    const { getAddress, isConnected } = await loadApi();
     const installed = await isConnected();
     if (!installed.isConnected) return;
     const result = await getAddress();
