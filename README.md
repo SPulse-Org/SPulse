@@ -47,6 +47,24 @@ http://localhost:8080
 
 You can also use the VS Code Live Server extension or deploy the contents of `frontend/` to any static host.
 
+## Deploy to Netlify
+
+The repository includes `netlify.toml`, so Netlify automatically publishes the `frontend/` directory without running a build command.
+
+1. Sign in at [Netlify](https://app.netlify.com/).
+2. Select **Add new project** and then **Import an existing project**.
+3. Choose GitHub and authorize access to the `Steller-StellarPulse-org/StellarPulse` repository.
+4. Select the `main` branch.
+5. Confirm these settings:
+
+   - Base directory: leave empty.
+   - Build command: leave empty.
+   - Publish directory: `frontend`.
+
+6. Select **Deploy**.
+
+Future pushes to `main` will trigger new Netlify deployments automatically. After deployment, open the generated `*.netlify.app` URL over HTTPS and test the Freighter connection. Freighter may ask you to approve the new Netlify domain as a connected application.
+
 ## Frontend files
 
 - `frontend/index.html` — page structure and inline SVG icon library.
