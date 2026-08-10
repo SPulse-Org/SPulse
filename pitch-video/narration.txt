@@ -1,0 +1,15 @@
+Prediction markets can be expensive, difficult to understand, and dependent on centralized platforms that control user funds and settlement.
+
+SPulse is a non-custodial prediction-market platform built on Stellar, designed to make transparent markets fast, accessible, and easy to explore.
+
+Users can discover clear questions, review probabilities and resolution criteria, preview positions in XLM, and follow community performance through a dedicated leaderboard.
+
+The current static application connects to Freighter on Stellar Testnet and displays live public network information. Full browser-to-contract transaction submission is our next integration milestone.
+
+Behind the product are four interconnected Soroban contracts managing prediction markets, referrals, leaderboard points, and PULSE rewards through transparent on-chain rules.
+
+All four contracts are deployed on Testnet. We have completed eighty-nine contract tests and verified registration, positions, cancellation refunds, resolution, claims, points, and reward distribution.
+
+With GrantFox support, we will complete direct contract integration, test SPulse with external users, strengthen protocol security, and prepare for a responsible mainnet launch.
+
+SPulse is building a faster, clearer, and community-driven prediction-market experience powered by Stellar.
