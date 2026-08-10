@@ -9,7 +9,8 @@ powershell -ExecutionPolicy Bypass -File pitch-video/render.ps1
 ```
 
 The renderer captures the current static website, generates narration with the
-installed Microsoft Zira voice, creates synchronized captions, and writes:
+Microsoft Ezinne Neural Nigerian English voice, creates synchronized captions,
+and writes:
 
 - `SPulse-GrantFox-Pitch.mp4`
 - `captions.srt`
@@ -17,3 +18,9 @@ installed Microsoft Zira voice, creates synchronized captions, and writes:
 The video is designed for a 1920x1080 application upload. Review the rendered
 video before submission and confirm the application does not impose a shorter
 duration or smaller file-size limit.
+
+The renderer requires `edge-tts` for neural narration:
+
+```powershell
+python -m pip install edge-tts
+```

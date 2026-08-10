@@ -57,22 +57,14 @@ try {
     if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
 }
 
-Add-Type -AssemblyName System.Speech
-$voice = New-Object System.Speech.Synthesis.SpeechSynthesizer
-$voice.SelectVoice('Microsoft Zira Desktop')
-$voice.Rate = -1
-$voice.Volume = 100
-
 for ($index = 0; $index -lt $scenes.Count; $index++) {
-    $audioPath = Join-Path $workDir ('{0:D2}.wav' -f ($index + 1))
-    $voice.SetOutputToWaveFile($audioPath)
-    $voice.Speak($scenes[$index].Text)
-    $voice.SetOutputToNull()
+    $audioPath = Join-Path $workDir ('{0:D2}.mp3' -f ($index + 1))
+    & python -m edge_tts --voice en-NG-EzinneNeural --rate=-6% --text $scenes[$index].Text --write-media $audioPath
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $audioPath)) { throw "Failed generating neural narration for scene $($index + 1)" }
     $scenes[$index].Audio = $audioPath
     $duration = & $ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $audioPath
     $scenes[$index].Duration = [Math]::Ceiling(([double]$duration + 0.8) * 1000) / 1000
 }
-$voice.Dispose()
 
 function Format-SrtTime([double]$seconds) {
     $span = [TimeSpan]::FromSeconds($seconds)
@@ -112,7 +104,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Failed concatenating video segments.' }
 
 Push-Location $pitchDir
 try {
-    & $ffmpeg -y -loglevel error -i $combinedPath -vf "subtitles=captions.srt:force_style='FontName=Arial,FontSize=22,PrimaryColour=&H00FFFFFF,OutlineColour=&H00101814,BorderStyle=3,Outline=1,Shadow=0,MarginV=46,Alignment=2'" -c:v libx264 -preset medium -crf 19 -c:a copy $outputPath
+    & $ffmpeg -y -loglevel error -i $combinedPath -vf "subtitles=captions.srt:force_style='FontName=Arial,FontSize=13,PrimaryColour=&H00FFFFFF,OutlineColour=&H00101814,BorderStyle=1,Outline=2,Shadow=1,MarginV=34,Alignment=2'" -c:v libx264 -preset medium -crf 19 -c:a copy $outputPath
     if ($LASTEXITCODE -ne 0) { throw 'Failed burning captions into the final video.' }
 } finally {
     Pop-Location
