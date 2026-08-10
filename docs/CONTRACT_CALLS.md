@@ -1,6 +1,6 @@
 # Contract Calls and ABI Examples
 
-This guide gives quick examples for calling the main StellarPulse contract
+This guide gives quick examples for calling the main SPulse contract
 methods through Soroban RPC tooling. Values are placeholders unless they are
 listed in the deployed contract table.
 

@@ -1,6 +1,6 @@
-# StellarPulse
+# SPulse
 
-StellarPulse is a prediction-market project built with Soroban smart contracts on Stellar and a lightweight static HTML frontend.
+SPulse is a prediction-market project built with Soroban smart contracts on Stellar and a lightweight static HTML frontend.
 
 The frontend uses plain HTML, CSS, and JavaScript. It does not require Node.js, Next.js, React, npm, or a build step.
 
