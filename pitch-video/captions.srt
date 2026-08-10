@@ -1,32 +1,32 @@
 1
-00:00:00,200 --> 00:00:10,568
+00:00:00,200 --> 00:00:10,704
 Prediction markets can be expensive, difficult to understand, and dependent on centralized platforms that control user funds and settlement.
 
 2
-00:00:10,968 --> 00:00:22,386
+00:00:11,104 --> 00:00:21,656
 SPulse is a non-custodial prediction-market platform built on Stellar, designed to make transparent markets fast, accessible, and easy to explore.
 
 3
-00:00:22,786 --> 00:00:35,704
+00:00:22,056 --> 00:00:34,504
 Users can discover clear questions, review probabilities and resolution criteria, preview positions in XLM, and follow community performance through a dedicated leaderboard.
 
 4
-00:00:36,104 --> 00:00:50,001
+00:00:34,904 --> 00:00:48,169
 The current static application connects to Freighter on Stellar Testnet and displays live public network information. Full browser-to-contract transaction submission is our next integration milestone.
 
 5
-00:00:50,401 --> 00:01:02,379
+00:00:48,569 --> 00:01:00,754
 Behind the product are four interconnected Soroban contracts managing prediction markets, referrals, leaderboard points, and PULSE rewards through transparent on-chain rules.
 
 6
-00:01:02,779 --> 00:01:18,401
+00:01:01,154 --> 00:01:17,322
 All four contracts are deployed on Testnet. We have completed eighty-nine contract tests and verified registration, positions, cancellation refunds, resolution, claims, points, and reward distribution.
 
 7
-00:01:18,801 --> 00:01:32,804
+00:01:17,722 --> 00:01:30,578
 With GrantFox support, we will complete direct contract integration, test SPulse with external users, strengthen protocol security, and prepare for a responsible mainnet launch.
 
 8
-00:01:33,204 --> 00:01:41,573
+00:01:30,978 --> 00:01:38,699
 SPulse is building a faster, clearer, and community-driven prediction-market experience powered by Stellar.
 
