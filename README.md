@@ -120,9 +120,6 @@ bash scripts/smoke-test.sh
 
 The smoke test creates temporary Friendbot-funded users and checks registration, betting, cancellation, refunds, resolution, claims, token rewards, fees, and leaderboard data.
 
-## Mainnet
-
-Do not deploy to mainnet until the static frontend has real wallet signing and Soroban transaction support, contract audits are complete, and all market-resolution operations have been reviewed. Mainnet deployment spends real XLM.
 
 ## Security
 
