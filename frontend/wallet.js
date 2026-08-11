@@ -72,6 +72,26 @@ async function loadBalance() {
   }
 }
 
+async function refreshBalance() {
+  if (!state.address) return null;
+  await loadBalance();
+  render();
+  return state.balance;
+}
+
+async function signWalletTransaction(transactionXdr, options = {}) {
+  if (!state.address) throw new Error("Connect Freighter before signing a transaction.");
+  await validateNetwork();
+  const { signTransaction } = await loadApi();
+  const result = await signTransaction(transactionXdr, {
+    address: state.address,
+    networkPassphrase: TESTNET_PASSPHRASE,
+    ...options,
+  });
+  if (result.error) throw new Error(errorMessage(result.error));
+  return result;
+}
+
 async function validateNetwork() {
   const { getNetwork } = await loadApi();
   const result = await getNetwork();
@@ -147,6 +167,12 @@ panelAction.addEventListener("click", () => {
   else connect();
 });
 
-window.stellarWallet = { connect, disconnect, getState: () => ({ ...state }) };
+window.stellarWallet = {
+  connect,
+  disconnect,
+  getState: () => ({ ...state }),
+  refreshBalance,
+  signTransaction: signWalletTransaction,
+};
 render();
 restore();
