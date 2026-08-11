@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Static frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate pages and local assets
+        run: node scripts/validate-frontend.mjs
+
+      - name: Check JavaScript syntax
+        run: find frontend -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Reject tracked secrets and deployment outputs
+        shell: bash
+        run: |
+          prohibited=$(git ls-files | grep -E '(^|/)(\.env|\.deploy\.env|deploy-output\.json|deploy-mainnet-output\.json)$' || true)
+          if [ -n "$prohibited" ]; then
+            echo "Sensitive or generated deployment files are tracked:"
+            echo "$prohibited"
+            exit 1
+          fi
+
+  contracts:
+    name: Soroban contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.91.0
+          components: rustfmt, clippy
+          targets: wasm32v1-none
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Run contract tests
+        run: cargo test --workspace --locked
+
+      - name: Build release WASM
+        run: cargo build --workspace --locked --release --target wasm32v1-none
