@@ -2,6 +2,8 @@ import { placeBet } from "./soroban.js";
 
 const HORIZON_URL = "https://horizon.stellar.org";
 const COINGECKO_URL = "https://api.coingecko.com/api/v3";
+const POSITION_STORAGE_KEY = "spulse:session-positions";
+const TESTNET_EXPLORER_PREFIX = "https://stellar.expert/explorer/testnet/tx/";
 
 const state = { price: null, change: null, selectedMarket: 0, outcome: "yes", positions: [] };
 const baseMarkets = [
@@ -12,6 +14,38 @@ const baseMarkets = [
   { category: "network", title: "Will mainnet process 100+ operations in one ledger?", detail: "Resolves from operation counts published by Stellar Horizon.", yes: 61, volume: "Preview", close: "24 hours" },
   { category: "crypto", title: "Will XLM outperform Bitcoin this month?", detail: "Compares monthly USD returns from the same public pricing source.", yes: 43, volume: "Preview", close: "Month end" },
 ];
+
+function loadPositions() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(POSITION_STORAGE_KEY) || "[]");
+    if (!Array.isArray(saved)) return [];
+    const marketTitles = new Set(baseMarkets.map((market) => market.title));
+    return saved.filter((position) => {
+      if (!position || typeof position !== "object") return false;
+      const validExplorer = !position.explorerUrl
+        || (typeof position.explorerUrl === "string" && position.explorerUrl.startsWith(TESTNET_EXPLORER_PREFIX));
+      return marketTitles.has(position.title)
+        && ["yes", "no"].includes(position.outcome)
+        && /^\d{1,4}(\.\d{1,2})?$/.test(position.stake)
+        && /^\d{1,8}(\.\d{1,2})?$/.test(position.returns)
+        && typeof position.time === "string"
+        && /^[0-9: APMapm.]{1,20}$/.test(position.time)
+        && validExplorer;
+    }).slice(0, 20);
+  } catch {
+    return [];
+  }
+}
+
+function savePositions() {
+  try {
+    sessionStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(state.positions.slice(0, 20)));
+  } catch {
+    // Storage can be unavailable in private browsing; positions still work in memory.
+  }
+}
+
+state.positions = loadPositions();
 
 const $ = (selector) => document.querySelector(selector);
 const formatNumber = (value) => new Intl.NumberFormat("en-US").format(value);
@@ -201,6 +235,7 @@ $("#order-form").addEventListener("submit", async (event) => {
 
   if (!market.onchainId) {
     state.positions.unshift(position);
+    savePositions();
     renderPositions();
     showToast("Position added to your simulation dashboard.");
     $("#activity").scrollIntoView({ behavior: "smooth" });
@@ -237,6 +272,7 @@ $("#order-form").addEventListener("submit", async (event) => {
       onStatus: (status) => { label.textContent = status; },
     });
     state.positions.unshift({ ...position, explorerUrl: transaction.explorerUrl, hash: transaction.hash });
+    savePositions();
     renderPositions();
     await wallet.refreshBalance();
     showToast("Position confirmed on Stellar Testnet.");
@@ -264,6 +300,7 @@ document.querySelectorAll(".site-nav a").forEach((link) => link.addEventListener
 $("#year").textContent = new Date().getFullYear();
 renderMarkets();
 selectMarket(0, false);
+renderPositions();
 updateNetwork();
 updatePrice();
 setInterval(updateNetwork, 10000);
