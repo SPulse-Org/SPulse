@@ -294,8 +294,27 @@ document.querySelectorAll("[data-dashboard]").forEach((button) => button.addEven
 }));
 
 const menuButton = $(".menu-button");
-menuButton.addEventListener("click", () => { const open = $(".site-nav").classList.toggle("open"); menuButton.setAttribute("aria-expanded", String(open)); });
-document.querySelectorAll(".site-nav a").forEach((link) => link.addEventListener("click", () => { $(".site-nav").classList.remove("open"); menuButton.setAttribute("aria-expanded", "false"); }));
+const siteNav = $("#main-navigation");
+
+function setMenuOpen(open, returnFocus = false) {
+  siteNav.classList.toggle("open", open);
+  menuButton.setAttribute("aria-expanded", String(open));
+  menuButton.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+  if (open) requestAnimationFrame(() => siteNav.querySelector("a")?.focus());
+  else if (returnFocus) menuButton.focus();
+}
+
+menuButton.addEventListener("click", () => setMenuOpen(!siteNav.classList.contains("open")));
+siteNav.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => setMenuOpen(false)));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && siteNav.classList.contains("open")) setMenuOpen(false, true);
+});
+document.addEventListener("pointerdown", (event) => {
+  if (siteNav.classList.contains("open") && !event.target.closest(".nav-wrap")) setMenuOpen(false);
+});
+window.matchMedia("(min-width: 681px)").addEventListener("change", (event) => {
+  if (event.matches) setMenuOpen(false);
+});
 
 $("#year").textContent = new Date().getFullYear();
 renderMarkets();
