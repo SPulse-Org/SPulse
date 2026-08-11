@@ -7,7 +7,7 @@ use soroban_sdk::{
 
 use leaderboard::LeaderboardContract;
 use referral_registry::ReferralRegistryContract;
-use PULSE_token::PULSETokenContract;
+use pulse_token::PULSETokenContract;
 
 // ── Test Infrastructure ───────────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ struct TestSetup {
     xlm_sac_id: Address,
     xlm_admin: StellarAssetClient<'static>,
     xlm: TokenClient<'static>,
-    token_client: PULSE_token::PULSETokenContractClient<'static>,
+    token_client: pulse_token::PULSETokenContractClient<'static>,
     leaderboard_client: leaderboard::LeaderboardContractClient<'static>,
     referral_client: referral_registry::ReferralRegistryContractClient<'static>,
 }
@@ -50,7 +50,7 @@ fn setup() -> TestSetup {
     let xlm = TokenClient::new(&env, &xlm_sac_id);
 
     let token_id = env.register(PULSETokenContract, ());
-    let token_client = PULSE_token::PULSETokenContractClient::new(&env, &token_id);
+    let token_client = pulse_token::PULSETokenContractClient::new(&env, &token_id);
     token_client.initialize(
         &admin,
         &String::from_str(&env, "PULSE"),

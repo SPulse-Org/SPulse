@@ -7,7 +7,7 @@ use soroban_sdk::{
 
 // Import sibling contracts for inter-contract testing
 use leaderboard::LeaderboardContract;
-use PULSE_token::PULSETokenContract;
+use pulse_token::PULSETokenContract;
 
 // ── Test Helpers ──────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ fn setup() -> TestSetup {
 
     // Deploy PULSEToken
     let token_id = env.register(PULSETokenContract, ());
-    let token_client = PULSE_token::PULSETokenContractClient::new(&env, &token_id);
+    let token_client = pulse_token::PULSETokenContractClient::new(&env, &token_id);
     token_client.initialize(
         &admin,
         &String::from_str(&env, "PULSE"),
@@ -131,7 +131,7 @@ fn test_welcome_bonus() {
     assert_eq!(stats.lost_bets, 0);
 
     // Token: 1 PULSE (7 decimals)
-    let tok_client = PULSE_token::PULSETokenContractClient::new(&t.env, &t.token_id);
+    let tok_client = pulse_token::PULSETokenContractClient::new(&t.env, &t.token_id);
     assert_eq!(tok_client.balance(&user), 1_0000000);
 }
 

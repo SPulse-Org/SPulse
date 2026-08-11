@@ -16,7 +16,7 @@ soroban-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
-PULSE_token = { path = "../pulse_token", features = ["testutils"] }
+pulse_token = { path = "../pulse_token", features = ["testutils"] }
 leaderboard = { path = "../leaderboard", features = ["testutils"] }
 referral_registry = { path = "../referral_registry", features = ["testutils"] }
 
