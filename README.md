@@ -6,7 +6,7 @@ The frontend uses plain HTML, CSS, and JavaScript. It does not require Node.js, 
 
 ## Current status
 
-The Soroban contracts are deployed and initialized on Stellar testnet. The static frontend displays live public Stellar network data and XLM pricing and connects to Freighter on testnet. Its order-entry interface is still a simulation and does not yet submit bets to the deployed contracts.
+The Soroban contracts are deployed and initialized on Stellar Testnet. The static frontend displays live public Stellar network data and XLM pricing, connects to Freighter, and submits positions for verified Testnet market #3 directly to the deployed prediction-market contract. The other market cards remain clearly labeled demonstrations.
 
 ### Testnet contracts
 
@@ -54,7 +54,8 @@ You can also use the VS Code Live Server extension or deploy the contents of `fr
 - `frontend/styles.css` — core theme and responsive layout.
 - `frontend/product.css` — trading workspace, dashboard, FAQ, and expanded product sections.
 - `frontend/pages.css` — shared styling for dedicated application pages.
-- `frontend/script.js` — live data, market filters, trading simulation, and dashboard interactions.
+- `frontend/script.js` — live data, market filters, Testnet order flow, simulations, and dashboard interactions.
+- `frontend/soroban.js` — Soroban simulation, signing, submission, confirmation polling, and contract errors.
 - `frontend/pages.js` — market catalog and leaderboard rendering.
 - `frontend/wallet.js` — Freighter connection, testnet validation, balance display, and Friendbot funding.
 
@@ -67,6 +68,16 @@ You can also use the VS Code Live Server extension or deploy the contents of `fr
 5. If the testnet account is empty, use the **Fund** action to request free test XLM from Friendbot.
 
 The wallet integration uses the official `@stellar/freighter-api` package as a pinned browser module. The site never receives or stores the wallet secret key. Freighter asks the user for approval and exposes only the selected public address.
+
+### Place a Testnet position
+
+1. Connect a funded Freighter account on Testnet.
+2. Select the market labeled **Testnet #3**.
+3. Choose YES or NO and enter at least 1 test XLM.
+4. Review and approve the exact contract transaction in Freighter.
+5. Wait for confirmation, then open the transaction from the dashboard in Stellar Expert.
+
+The browser loads the source account, builds a `place_bet` invocation, simulates it through Stellar RPC, asks Freighter to sign the prepared XDR, submits it to Testnet, and polls until the ledger confirms success. A failed or cancelled wallet request is never displayed as a completed position.
 
 The page retrieves:
 
@@ -125,7 +136,7 @@ The smoke test creates temporary Friendbot-funded users and checks registration,
 
 - Never commit `.deploy.env`, secret keys, seed phrases, or wallet exports.
 - Contract IDs and public account addresses are safe to publish.
-- Wallet connection and balance lookup are real testnet operations. Order previews remain simulations and must not imply that a displayed order was submitted onchain.
+- Wallet connection, balance lookup, and positions on market #3 are real Testnet operations. All other market cards remain simulations and are labeled accordingly.
 
 ## License
 
