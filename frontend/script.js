@@ -1,9 +1,11 @@
+import { placeBet } from "./soroban.js";
+
 const HORIZON_URL = "https://horizon.stellar.org";
 const COINGECKO_URL = "https://api.coingecko.com/api/v3";
 
 const state = { price: null, change: null, selectedMarket: 0, outcome: "yes", positions: [] };
 const baseMarkets = [
-  { category: "crypto", title: "Will XLM close above $0.50 this month?", detail: "Resolves from the CoinGecko XLM/USD daily close.", yes: 54, volume: "Preview", close: "Month end", dynamic: true },
+  { category: "crypto", title: "Will Stellar XLM trade above $0.50 before September 30, 2026?", detail: "Live Stellar Testnet market #3. Resolution is controlled by the deployed SPulse market contract.", yes: 50, volume: "Testnet live", close: "Sep 30, 2026", onchainId: 3 },
   { category: "network", title: "Will Stellar pass 70 million ledgers this year?", detail: "Resolves from the public Stellar mainnet ledger sequence.", yes: 68, volume: "Preview", close: "Dec 31" },
   { category: "network", title: "Will average ledger close stay below 6 seconds?", detail: "Measured against public Horizon ledger timestamps.", yes: 76, volume: "Preview", close: "7-day window" },
   { category: "crypto", title: "Will XLM gain 10% over the next seven days?", detail: "Resolves from the CoinGecko XLM/USD seven-day price change.", yes: 47, volume: "Preview", close: "7 days" },
@@ -89,7 +91,9 @@ function renderMarkets(filter = "all") {
   }).filter((market) => filter === "all" || market.category === filter);
   $("#market-list").innerHTML = markets.map((market) => {
     const index = baseMarkets.findIndex((item) => item.title === market.title);
-    return `<article class="market-card"><div class="market-card-header"><span class="category">${market.category}</span><span class="market-badge">Demonstration</span></div><h3>${market.title}</h3><p>${market.detail}</p><div class="probability" aria-label="Yes ${market.yes} percent"><span style="width:${market.yes}%"></span></div><div class="outcomes"><strong class="yes">Yes ${market.yes}%</strong><strong class="no">No ${100 - market.yes}%</strong></div><div class="market-card-action"><div class="market-meta"><span>${market.close}</span></div><button class="trade-link" type="button" data-trade-index="${index}">Trade market <svg><use href="#i-arrow" /></svg></button></div></article>`;
+    const badge = market.onchainId ? `<span class="market-badge live">Testnet #${market.onchainId}</span>` : '<span class="market-badge">Demonstration</span>';
+    const action = market.onchainId ? "Place position" : "Preview market";
+    return `<article class="market-card"><div class="market-card-header"><span class="category">${market.category}</span>${badge}</div><h3>${market.title}</h3><p>${market.detail}</p><div class="probability" aria-label="Yes ${market.yes} percent"><span style="width:${market.yes}%"></span></div><div class="outcomes"><strong class="yes">Yes ${market.yes}%</strong><strong class="no">No ${100 - market.yes}%</strong></div><div class="market-card-action"><div class="market-meta"><span>${market.close}</span></div><button class="trade-link" type="button" data-trade-index="${index}">${action} <svg><use href="#i-arrow" /></svg></button></div></article>`;
   }).join("");
 }
 
@@ -124,13 +128,33 @@ function selectMarket(index, scroll = true) {
   $("#trade-probability-bar").style.width = `${market.yes}%`;
   $("#yes-price").textContent = `${market.yes}%`;
   $("#no-price").textContent = `${100 - market.yes}%`;
+  const submitLabel = $("#submit-order span");
+  const mode = $("#trade-mode");
+  if (market.onchainId) {
+    submitLabel.textContent = "Place Testnet position";
+    mode.innerHTML = '<svg><use href="#i-zap" /></svg> Live Testnet market';
+    mode.classList.add("live");
+    $("#trade-status").textContent = "Testnet open";
+    $("#order-disclaimer").textContent = "Freighter will show the exact contract transaction before anything is submitted.";
+  } else {
+    submitLabel.textContent = "Preview position";
+    mode.innerHTML = '<svg><use href="#i-help" /></svg> Simulation mode';
+    mode.classList.remove("live");
+    $("#trade-status").textContent = "Preview";
+    $("#order-disclaimer").textContent = "No funds will move. This interface demonstrates the intended trading flow.";
+  }
   updateOrderPreview();
   if (scroll) $("#trade").scrollIntoView({ behavior: "smooth" });
 }
 
 function renderPositions() {
   if (!state.positions.length) return;
-  $("#position-list").innerHTML = state.positions.map((position) => `<article class="position-card"><div><h3>${position.title}</h3><p>Created ${position.time}</p></div><div class="position-stat"><span>Outcome</span><strong class="${position.outcome}">${position.outcome.toUpperCase()}</strong></div><div class="position-stat"><span>Stake</span><strong>${position.stake} XLM</strong></div><div class="position-stat"><span>Potential return</span><strong>${position.returns} XLM</strong></div><span class="position-result">Simulated</span></article>`).join("");
+  $("#position-list").innerHTML = state.positions.map((position) => {
+    const result = position.explorerUrl
+      ? `<a class="position-result onchain" href="${position.explorerUrl}" target="_blank" rel="noreferrer">Confirmed <svg><use href="#i-external" /></svg></a>`
+      : '<span class="position-result">Simulated</span>';
+    return `<article class="position-card"><div><h3>${position.title}</h3><p>Created ${position.time}</p></div><div class="position-stat"><span>Outcome</span><strong class="${position.outcome}">${position.outcome.toUpperCase()}</strong></div><div class="position-stat"><span>Stake</span><strong>${position.stake} XLM</strong></div><div class="position-stat"><span>Potential return</span><strong>${position.returns} XLM</strong></div>${result}</article>`;
+  }).join("");
 }
 
 function showToast(message) {
@@ -167,15 +191,61 @@ document.querySelectorAll("[data-outcome]").forEach((button) => button.addEventL
 $("#stake-amount").addEventListener("input", updateOrderPreview);
 document.querySelectorAll("[data-amount]").forEach((button) => button.addEventListener("click", () => { $("#stake-amount").value = button.dataset.amount; updateOrderPreview(); }));
 
-$("#order-form").addEventListener("submit", (event) => {
+$("#order-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const stake = Math.max(1, Math.min(1000, Number($("#stake-amount").value) || 1));
   const market = currentMarket();
   const probability = state.outcome === "yes" ? market.yes : 100 - market.yes;
-  state.positions.unshift({ title: market.title, outcome: state.outcome, stake: stake.toFixed(0), returns: (stake / (probability / 100)).toFixed(2), time: new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }).format(new Date()) });
-  renderPositions();
-  showToast("Position added to your simulation dashboard.");
-  $("#activity").scrollIntoView({ behavior: "smooth" });
+  const position = { title: market.title, outcome: state.outcome, stake: stake.toFixed(0), returns: (stake / (probability / 100)).toFixed(2), time: new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }).format(new Date()) };
+
+  if (!market.onchainId) {
+    state.positions.unshift(position);
+    renderPositions();
+    showToast("Position added to your simulation dashboard.");
+    $("#activity").scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+
+  const wallet = window.stellarWallet;
+  const walletState = wallet?.getState();
+  if (!walletState?.address) {
+    window.showWalletNotice("Connect a funded Freighter Testnet wallet first.", true);
+    await wallet?.connect();
+    return;
+  }
+  if (walletState.balance === 0) {
+    window.showWalletNotice("Fund your Testnet wallet before placing a position.", true);
+    return;
+  }
+  if (Number.isFinite(walletState.balance) && stake + 1 > walletState.balance) {
+    window.showWalletNotice("Leave at least 1 test XLM available for account reserves and fees.", true);
+    return;
+  }
+
+  const submit = $("#submit-order");
+  const label = submit.querySelector("span");
+  const originalLabel = label.textContent;
+  submit.disabled = true;
+  try {
+    const transaction = await placeBet({
+      address: walletState.address,
+      marketId: market.onchainId,
+      isYes: state.outcome === "yes",
+      amountXlm: String(stake),
+      signTransaction: wallet.signTransaction,
+      onStatus: (status) => { label.textContent = status; },
+    });
+    state.positions.unshift({ ...position, explorerUrl: transaction.explorerUrl, hash: transaction.hash });
+    renderPositions();
+    await wallet.refreshBalance();
+    showToast("Position confirmed on Stellar Testnet.");
+    $("#activity").scrollIntoView({ behavior: "smooth" });
+  } catch (error) {
+    window.showWalletNotice(error.message || "The Testnet position could not be submitted.", true);
+  } finally {
+    submit.disabled = false;
+    label.textContent = originalLabel;
+  }
 });
 
 document.querySelectorAll("[data-dashboard]").forEach((button) => button.addEventListener("click", () => {

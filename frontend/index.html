@@ -91,7 +91,7 @@
 
       <section id="trade" class="section trade-section">
         <div class="container">
-          <div class="section-heading"><div><span class="eyebrow">Trading workspace</span><h2>Take a position</h2><p>Choose a market above or use the selected market below to preview a position.</p></div><span class="demo-notice"><svg><use href="#i-help" /></svg> Simulation mode</span></div>
+          <div class="section-heading"><div><span class="eyebrow">Trading workspace</span><h2>Take a position</h2><p>Choose a market above or use the selected market below to preview a position.</p></div><span class="demo-notice" id="trade-mode"><svg><use href="#i-help" /></svg> Simulation mode</span></div>
           <div class="trade-layout">
             <div class="trade-market-panel">
               <div class="trade-title-row"><div><span id="trade-category" class="category">Crypto</span><h3 id="trade-title">Will XLM close above $0.50 this month?</h3></div><span id="trade-status" class="status-pill online">Open</span></div>
@@ -111,8 +111,8 @@
               <div class="amount-input"><input id="stake-amount" type="number" min="1" max="1000" step="1" value="100" required /><span>XLM</span></div>
               <div class="quick-amounts"><button type="button" data-amount="25">25</button><button type="button" data-amount="50">50</button><button type="button" data-amount="100">100</button><button type="button" data-amount="250">250</button></div>
               <dl class="order-summary"><div><dt>Average price</dt><dd id="average-price">0.54 XLM</dd></div><div><dt>Potential return</dt><dd id="potential-return">185.19 XLM</dd></div><div><dt>Potential profit</dt><dd id="potential-profit">85.19 XLM</dd></div></dl>
-              <button class="button button-primary submit-order" type="submit">Preview position <svg><use href="#i-arrow" /></svg></button>
-              <p class="order-disclaimer">No funds will move. This interface demonstrates the intended trading flow.</p>
+              <button class="button button-primary submit-order" id="submit-order" type="submit"><span>Preview position</span> <svg><use href="#i-arrow" /></svg></button>
+              <p class="order-disclaimer" id="order-disclaimer">No funds will move. This interface demonstrates the intended trading flow.</p>
             </form>
           </div>
         </div>
@@ -153,6 +153,6 @@
 
     <footer><div class="container footer-inner"><a class="brand" href="#top"><span class="brand-mark"><svg><use href="#i-pulse" /></svg></span><span>S<span>Pulse</span></span></a><p>Live public data. Demonstration markets only.</p><span>© <span id="year"></span> SPulse</span></div></footer>
     <script type="module" src="wallet.js"></script>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
   </body>
 </html>

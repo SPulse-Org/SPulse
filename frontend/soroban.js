@@ -35,12 +35,14 @@ function simulationError(error) {
   if (message.includes("Error(Contract, #")) {
     const code = message.match(/Error\(Contract, #(\d+)\)/)?.[1];
     const known = {
-      2: "This market is not open.",
-      3: "This market has already ended.",
-      4: "This market has already been resolved.",
-      5: "The position amount is below the contract minimum.",
-      6: "A position already exists on the opposite outcome.",
-      7: "The requested market does not exist.",
+      4: "The requested market does not exist.",
+      5: "This market has already ended.",
+      7: "This market has already been resolved.",
+      8: "This market has been cancelled.",
+      10: "The position amount is below the 1 XLM contract minimum.",
+      11: "A position already exists on the opposite outcome.",
+      14: "The contract rejected the position amount.",
+      17: "This account has reached the position limit for the market.",
     };
     return known[code] || `The contract rejected this transaction (error ${code}).`;
   }
@@ -64,7 +66,7 @@ export async function placeBet({ address, marketId, isYes, amountXlm, signTransa
 
   const amount = xlmToStroops(amountXlm);
   const sdk = await loadSdk();
-  const { Address, BASE_FEE, Contract, Networks, TransactionBuilder, nativeToScVal, rpc } = sdk;
+  const { BASE_FEE, Contract, Networks, TransactionBuilder, nativeToScVal, rpc } = sdk;
   const server = new rpc.Server(TESTNET.rpcUrl);
 
   onStatus?.("Loading Testnet account");
@@ -76,7 +78,7 @@ export async function placeBet({ address, marketId, isYes, amountXlm, signTransa
   })
     .addOperation(contract.call(
       "place_bet",
-      new Address(address).toScVal(),
+      nativeToScVal(address, { type: "address" }),
       nativeToScVal(BigInt(marketId), { type: "u64" }),
       nativeToScVal(Boolean(isYes), { type: "bool" }),
       nativeToScVal(amount, { type: "i128" }),
