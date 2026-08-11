@@ -59,7 +59,9 @@ fn setup() -> TestSetup {
     token_client.set_minter(&referral_id);
 
     // Register a SAC for native XLM
-    let xlm_sac_id = env.register_stellar_asset_contract(admin.clone());
+    let xlm_sac_id = env
+        .register_stellar_asset_contract_v2(admin.clone())
+        .address();
 
     // Initialize referral registry
     referral_client.initialize(&admin, &market, &token_id, &leaderboard_id, &xlm_sac_id);

@@ -15,11 +15,6 @@ struct TestSetup {
     env: Env,
     client: PredictionMarketContractClient<'static>,
     admin: Address,
-    market_id: Address,
-    token_id: Address,
-    leaderboard_id: Address,
-    referral_id: Address,
-    xlm_sac_id: Address,
     xlm_admin: StellarAssetClient<'static>,
     xlm: TokenClient<'static>,
     token_client: pulse_token::PULSETokenContractClient<'static>,
@@ -45,7 +40,9 @@ fn setup() -> TestSetup {
 
     let admin = Address::generate(&env);
 
-    let xlm_sac_id = env.register_stellar_asset_contract(admin.clone());
+    let xlm_sac_id = env
+        .register_stellar_asset_contract_v2(admin.clone())
+        .address();
     let xlm_admin = StellarAssetClient::new(&env, &xlm_sac_id);
     let xlm = TokenClient::new(&env, &xlm_sac_id);
 
@@ -91,11 +88,6 @@ fn setup() -> TestSetup {
         env,
         client,
         admin,
-        market_id,
-        token_id,
-        leaderboard_id,
-        referral_id,
-        xlm_sac_id,
         xlm_admin,
         xlm,
         token_client,
@@ -678,7 +670,7 @@ fn test_reject_too_many_bets() {
     let t = setup();
     let id = create_test_market(&t);
     let user = Address::generate(&t.env);
-    fund_user(&t, &user, 10_000_0000000);
+    fund_user(&t, &user, 100_000_000_000);
 
     for _ in 0..=20u32 {
         t.client.place_bet(&user, &id, &true, &1_0000000_i128);
