@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use crate::{PULSETokenContract, PULSETokenContractClient};
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
 
@@ -7,7 +5,7 @@ use soroban_sdk::{testutils::Address as _, Address, Env, String};
 
 /// Deploy a fresh PULSEToken contract and return its client.
 fn setup(env: &Env) -> PULSETokenContractClient<'_> {
-    let id = env.register_contract(None, PULSETokenContract);
+    let id = env.register(PULSETokenContract, ());
     PULSETokenContractClient::new(env, &id)
 }
 

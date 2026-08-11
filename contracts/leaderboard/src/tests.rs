@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use super::*;
 use soroban_sdk::{testutils::Address as _, Env};
 
@@ -12,9 +10,9 @@ fn setup() -> (
 ) {
     let env = Env::default();
     env.mock_all_auths();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
-    let contract_id = env.register_contract(None, LeaderboardContract);
+    let contract_id = env.register(LeaderboardContract, ());
     let client = LeaderboardContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);

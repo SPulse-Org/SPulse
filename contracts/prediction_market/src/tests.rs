@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use super::*;
 use soroban_sdk::{
     testutils::{Address as _, Ledger, LedgerInfo},
@@ -32,7 +30,7 @@ struct TestSetup {
 fn setup() -> TestSetup {
     let env = Env::default();
     env.mock_all_auths();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     env.ledger().set(LedgerInfo {
         timestamp: 1_000_000,
@@ -51,7 +49,7 @@ fn setup() -> TestSetup {
     let xlm_admin = StellarAssetClient::new(&env, &xlm_sac_id);
     let xlm = TokenClient::new(&env, &xlm_sac_id);
 
-    let token_id = env.register_contract(None, PULSETokenContract);
+    let token_id = env.register(PULSETokenContract, ());
     let token_client = PULSE_token::PULSETokenContractClient::new(&env, &token_id);
     token_client.initialize(
         &admin,
@@ -60,14 +58,14 @@ fn setup() -> TestSetup {
         &7u32,
     );
 
-    let leaderboard_id = env.register_contract(None, LeaderboardContract);
+    let leaderboard_id = env.register(LeaderboardContract, ());
     let leaderboard_client = leaderboard::LeaderboardContractClient::new(&env, &leaderboard_id);
 
-    let referral_id = env.register_contract(None, ReferralRegistryContract);
+    let referral_id = env.register(ReferralRegistryContract, ());
     let referral_client =
         referral_registry::ReferralRegistryContractClient::new(&env, &referral_id);
 
-    let market_id = env.register_contract(None, PredictionMarketContract);
+    let market_id = env.register(PredictionMarketContract, ());
     let client = PredictionMarketContractClient::new(&env, &market_id);
 
     client.initialize(

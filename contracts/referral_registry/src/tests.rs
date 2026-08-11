@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use super::*;
 use soroban_sdk::{
     testutils::Address as _,
@@ -27,13 +25,13 @@ struct TestSetup {
 fn setup() -> TestSetup {
     let env = Env::default();
     env.mock_all_auths();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let market = Address::generate(&env);
 
     // Deploy PULSEToken
-    let token_id = env.register_contract(None, PULSETokenContract);
+    let token_id = env.register(PULSETokenContract, ());
     let token_client = PULSE_token::PULSETokenContractClient::new(&env, &token_id);
     token_client.initialize(
         &admin,
@@ -43,11 +41,11 @@ fn setup() -> TestSetup {
     );
 
     // Deploy Leaderboard
-    let leaderboard_id = env.register_contract(None, LeaderboardContract);
+    let leaderboard_id = env.register(LeaderboardContract, ());
     let leaderboard_client = leaderboard::LeaderboardContractClient::new(&env, &leaderboard_id);
 
     // Deploy ReferralRegistry
-    let referral_id = env.register_contract(None, ReferralRegistryContract);
+    let referral_id = env.register(ReferralRegistryContract, ());
     let referral_client = ReferralRegistryContractClient::new(&env, &referral_id);
 
     // Initialize Leaderboard: market + referral as authorized callers
