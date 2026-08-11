@@ -157,19 +157,20 @@ function renderPositions() {
   }).join("");
 }
 
-function showToast(message) {
+function showToast(message, isError = false) {
   document.querySelector(".toast")?.remove();
   const toast = document.createElement("div");
-  toast.className = "toast";
-  toast.innerHTML = `<svg><use href="#i-check" /></svg><span>${message}</span>`;
+  toast.className = `toast${isError ? " toast-error" : ""}`;
+  toast.setAttribute("role", isError ? "alert" : "status");
+  toast.setAttribute("aria-live", isError ? "assertive" : "polite");
+  toast.innerHTML = '<svg aria-hidden="true"><use href="#i-check" /></svg><span></span>';
+  toast.querySelector("span").textContent = String(message);
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
 }
 
 window.showWalletNotice = (message, isError = false) => {
-  showToast(message);
-  const toast = document.querySelector(".toast");
-  if (toast && isError) toast.classList.add("toast-error");
+  showToast(message, isError);
 };
 
 document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
