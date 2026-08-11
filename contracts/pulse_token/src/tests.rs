@@ -1,4 +1,4 @@
-﻿#![cfg(test)]
+#![cfg(test)]
 
 use crate::{PULSETokenContract, PULSETokenContractClient};
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
@@ -293,6 +293,3 @@ fn test_total_supply_tracking() {
     assert_eq!(client.balance(&alice), 50_0000000_i128);
     assert_eq!(client.balance(&bob), 60_0000000_i128);
 }
-
-
-

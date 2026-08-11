@@ -1,17 +1,19 @@
-﻿#![no_std]
+#![no_std]
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, BytesN, Env, String};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, Address, BytesN, Env, String,
+};
 
 #[contracterror]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum TokenError {
-    AlreadyInitialized  = 1,
-    NotInitialized      = 2,
-    UnauthorizedMinter  = 3,
+    AlreadyInitialized = 1,
+    NotInitialized = 2,
+    UnauthorizedMinter = 3,
     InsufficientBalance = 4,
-    InvalidAmount       = 5,
-    NotAdmin            = 6,
+    InvalidAmount = 5,
+    NotAdmin = 6,
 }
 
 #[contracttype]
@@ -52,9 +54,14 @@ impl PULSETokenContract {
 
     /// Replace this contract's WASM in place. Admin only. Balances preserved.
     pub fn upgrade(env: Env, admin: Address, new_wasm_hash: BytesN<32>) -> Result<(), TokenError> {
-        let stored: Address = env.storage().instance().get(&DataKey::Admin)
+        let stored: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
             .ok_or(TokenError::NotInitialized)?;
-        if admin != stored { return Err(TokenError::NotAdmin); }
+        if admin != stored {
+            return Err(TokenError::NotAdmin);
+        }
         admin.require_auth();
         env.deployer().update_current_contract_wasm(new_wasm_hash);
         Ok(())
@@ -63,14 +70,18 @@ impl PULSETokenContract {
     pub fn set_minter(env: Env, minter: Address) -> Result<(), TokenError> {
         let admin: Address = Self::require_admin(&env)?;
         admin.require_auth();
-        env.storage().persistent().set(&DataKey::AuthorizedMinter(minter), &true);
+        env.storage()
+            .persistent()
+            .set(&DataKey::AuthorizedMinter(minter), &true);
         Ok(())
     }
 
     pub fn remove_minter(env: Env, minter: Address) -> Result<(), TokenError> {
         let admin: Address = Self::require_admin(&env)?;
         admin.require_auth();
-        env.storage().persistent().remove(&DataKey::AuthorizedMinter(minter));
+        env.storage()
+            .persistent()
+            .remove(&DataKey::AuthorizedMinter(minter));
         Ok(())
     }
 
@@ -79,16 +90,26 @@ impl PULSETokenContract {
             return Err(TokenError::InvalidAmount);
         }
         minter.require_auth();
-        let is_minter: bool = env.storage().persistent()
+        let is_minter: bool = env
+            .storage()
+            .persistent()
             .get(&DataKey::AuthorizedMinter(minter))
             .unwrap_or(false);
         if !is_minter {
             return Err(TokenError::UnauthorizedMinter);
         }
         let balance = Self::balance(env.clone(), to.clone());
-        env.storage().persistent().set(&DataKey::Balance(to), &(balance + amount));
-        let supply: i128 = env.storage().instance().get(&DataKey::TotalSupply).unwrap_or(0);
-        env.storage().instance().set(&DataKey::TotalSupply, &(supply + amount));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(to), &(balance + amount));
+        let supply: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &(supply + amount));
         Ok(())
     }
 
@@ -101,9 +122,13 @@ impl PULSETokenContract {
         if from_balance < amount {
             return Err(TokenError::InsufficientBalance);
         }
-        env.storage().persistent().set(&DataKey::Balance(from), &(from_balance - amount));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from), &(from_balance - amount));
         let to_balance = Self::balance(env.clone(), to.clone());
-        env.storage().persistent().set(&DataKey::Balance(to), &(to_balance + amount));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(to), &(to_balance + amount));
         Ok(())
     }
 
@@ -116,39 +141,62 @@ impl PULSETokenContract {
         if from_balance < amount {
             return Err(TokenError::InsufficientBalance);
         }
-        env.storage().persistent().set(&DataKey::Balance(from), &(from_balance - amount));
-        let supply: i128 = env.storage().instance().get(&DataKey::TotalSupply).unwrap_or(0);
-        env.storage().instance().set(&DataKey::TotalSupply, &(supply - amount));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from), &(from_balance - amount));
+        let supply: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &(supply - amount));
         Ok(())
     }
 
     pub fn balance(env: Env, account: Address) -> i128 {
-        env.storage().persistent().get(&DataKey::Balance(account)).unwrap_or(0)
+        env.storage()
+            .persistent()
+            .get(&DataKey::Balance(account))
+            .unwrap_or(0)
     }
 
     pub fn total_supply(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalSupply).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0)
     }
 
     pub fn name(env: Env) -> String {
-        env.storage().instance().get(&DataKey::Name)
+        env.storage()
+            .instance()
+            .get(&DataKey::Name)
             .unwrap_or_else(|| String::from_str(&env, "PULSE"))
     }
 
     pub fn symbol(env: Env) -> String {
-        env.storage().instance().get(&DataKey::Symbol)
+        env.storage()
+            .instance()
+            .get(&DataKey::Symbol)
             .unwrap_or_else(|| String::from_str(&env, "PLSE"))
     }
 
     pub fn decimals(env: Env) -> u32 {
-        env.storage().instance().get(&DataKey::Decimals).unwrap_or(7)
+        env.storage()
+            .instance()
+            .get(&DataKey::Decimals)
+            .unwrap_or(7)
     }
 
     fn require_admin(env: &Env) -> Result<Address, TokenError> {
-        env.storage().instance().get(&DataKey::Admin).ok_or(TokenError::NotInitialized)
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(TokenError::NotInitialized)
     }
 }
 
 #[cfg(test)]
 mod tests;
-

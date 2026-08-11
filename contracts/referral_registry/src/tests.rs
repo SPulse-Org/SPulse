@@ -1,4 +1,4 @@
-﻿#![cfg(test)]
+#![cfg(test)]
 
 use super::*;
 use soroban_sdk::{
@@ -8,8 +8,8 @@ use soroban_sdk::{
 };
 
 // Import sibling contracts for inter-contract testing
-use PULSE_token::PULSETokenContract;
 use leaderboard::LeaderboardContract;
+use PULSE_token::PULSETokenContract;
 
 // ── Test Helpers ──────────────────────────────────────────────────────────────
 
@@ -106,11 +106,8 @@ fn test_register_no_referrer() {
     let user = Address::generate(&t.env);
 
     let no_ref: Option<Address> = None;
-    t.client.register_referral(
-        &user,
-        &String::from_str(&t.env, "JustBetting"),
-        &no_ref,
-    );
+    t.client
+        .register_referral(&user, &String::from_str(&t.env, "JustBetting"), &no_ref);
 
     assert!(t.client.is_registered(&user));
     assert_eq!(t.client.get_referrer(&user), None);
@@ -125,11 +122,8 @@ fn test_welcome_bonus() {
     let user = Address::generate(&t.env);
 
     let no_ref: Option<Address> = None;
-    t.client.register_referral(
-        &user,
-        &String::from_str(&t.env, "NewUser"),
-        &no_ref,
-    );
+    t.client
+        .register_referral(&user, &String::from_str(&t.env, "NewUser"), &no_ref);
 
     // Leaderboard: 5 welcome points, no win/loss impact
     let lb_client = leaderboard::LeaderboardContractClient::new(&t.env, &t.leaderboard_id);
@@ -167,18 +161,12 @@ fn test_reject_double_registration() {
     let user = Address::generate(&t.env);
 
     let no_ref: Option<Address> = None;
-    t.client.register_referral(
-        &user,
-        &String::from_str(&t.env, "First"),
-        &no_ref,
-    );
+    t.client
+        .register_referral(&user, &String::from_str(&t.env, "First"), &no_ref);
 
     // Second registration should fail
-    t.client.register_referral(
-        &user,
-        &String::from_str(&t.env, "Second"),
-        &no_ref,
-    );
+    t.client
+        .register_referral(&user, &String::from_str(&t.env, "Second"), &no_ref);
 }
 
 // ── 6. Display name stored and retrievable ───────────────────────────────────
@@ -189,11 +177,8 @@ fn test_display_name() {
     let user = Address::generate(&t.env);
 
     let no_ref: Option<Address> = None;
-    t.client.register_referral(
-        &user,
-        &String::from_str(&t.env, "CryptoKing"),
-        &no_ref,
-    );
+    t.client
+        .register_referral(&user, &String::from_str(&t.env, "CryptoKing"), &no_ref);
 
     assert_eq!(
         t.client.get_display_name(&user),
@@ -254,11 +239,8 @@ fn test_credit_no_referrer() {
 
     // Register without referrer
     let no_ref: Option<Address> = None;
-    t.client.register_referral(
-        &user,
-        &String::from_str(&t.env, "Solo"),
-        &no_ref,
-    );
+    t.client
+        .register_referral(&user, &String::from_str(&t.env, "Solo"), &no_ref);
 
     // In real flow, prediction_market transfers referral_fee to this contract
     // before calling credit. Mirror that here.
@@ -397,26 +379,36 @@ fn test_legacy_user_still_readable() {
 
     // Simulate a pre-upgrade registration by writing the OLD keys directly.
     s.env.as_contract(&s.referral_id, || {
-        s.env.storage().persistent().set(&DataKey::Registered(legacy_user.clone()), &true);
+        s.env
+            .storage()
+            .persistent()
+            .set(&DataKey::Registered(legacy_user.clone()), &true);
         s.env.storage().persistent().set(
             &DataKey::DisplayName(legacy_user.clone()),
             &String::from_str(&s.env, "OldTimer"),
         );
-        s.env.storage().persistent().set(&DataKey::Referrer(legacy_user.clone()), &legacy_ref);
+        s.env
+            .storage()
+            .persistent()
+            .set(&DataKey::Referrer(legacy_user.clone()), &legacy_ref);
     });
 
     // All read paths must resolve via the legacy fallback.
     assert!(s.client.is_registered(&legacy_user));
-    assert_eq!(s.client.get_display_name(&legacy_user), String::from_str(&s.env, "OldTimer"));
-    assert_eq!(s.client.get_referrer(&legacy_user), Some(legacy_ref.clone()));
+    assert_eq!(
+        s.client.get_display_name(&legacy_user),
+        String::from_str(&s.env, "OldTimer")
+    );
+    assert_eq!(
+        s.client.get_referrer(&legacy_user),
+        Some(legacy_ref.clone())
+    );
     assert!(s.client.has_referrer(&legacy_user));
 
     // And a legacy user must NOT be able to double-register under the new scheme.
-    let res = s.client.try_register_referral(
-        &legacy_user,
-        &String::from_str(&s.env, "OldTimer"),
-        &None,
-    );
+    let res =
+        s.client
+            .try_register_referral(&legacy_user, &String::from_str(&s.env, "OldTimer"), &None);
     assert!(res.is_err());
 }
 
@@ -426,7 +418,10 @@ fn test_legacy_user_without_referrer() {
     let s = setup();
     let legacy_user = Address::generate(&s.env);
     s.env.as_contract(&s.referral_id, || {
-        s.env.storage().persistent().set(&DataKey::Registered(legacy_user.clone()), &true);
+        s.env
+            .storage()
+            .persistent()
+            .set(&DataKey::Registered(legacy_user.clone()), &true);
         s.env.storage().persistent().set(
             &DataKey::DisplayName(legacy_user.clone()),
             &String::from_str(&s.env, "Solo"),
@@ -436,4 +431,3 @@ fn test_legacy_user_without_referrer() {
     assert_eq!(s.client.get_referrer(&legacy_user), None);
     assert!(!s.client.has_referrer(&legacy_user));
 }
-

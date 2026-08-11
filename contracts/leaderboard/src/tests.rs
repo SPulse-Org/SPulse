@@ -3,7 +3,13 @@
 use super::*;
 use soroban_sdk::{testutils::Address as _, Env};
 
-fn setup() -> (Env, LeaderboardContractClient<'static>, Address, Address, Address) {
+fn setup() -> (
+    Env,
+    LeaderboardContractClient<'static>,
+    Address,
+    Address,
+    Address,
+) {
     let env = Env::default();
     env.mock_all_auths();
     env.budget().reset_unlimited();
@@ -11,8 +17,8 @@ fn setup() -> (Env, LeaderboardContractClient<'static>, Address, Address, Addres
     let contract_id = env.register_contract(None, LeaderboardContract);
     let client = LeaderboardContractClient::new(&env, &contract_id);
 
-    let admin   = Address::generate(&env);
-    let market  = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let market = Address::generate(&env);
     let referral = Address::generate(&env);
 
     client.initialize(&admin, &market, &referral);
@@ -60,8 +66,8 @@ fn test_bonus_pts_no_won_lost() {
 fn test_top_players_sorted() {
     let (env, client, _admin, market, _referral) = setup();
 
-    let alice   = Address::generate(&env);
-    let bob     = Address::generate(&env);
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
     let charlie = Address::generate(&env);
 
     client.add_pts(&market, &alice, &50_u64, &true);
@@ -147,10 +153,10 @@ fn test_get_stats_aggregate() {
 fn test_rank_calculation() {
     let (env, client, _admin, market, _referral) = setup();
 
-    let alice   = Address::generate(&env);
-    let bob     = Address::generate(&env);
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
     let charlie = Address::generate(&env);
-    let dave    = Address::generate(&env);
+    let dave = Address::generate(&env);
 
     client.add_pts(&market, &alice, &50_u64, &true);
     client.add_pts(&market, &bob, &100_u64, &true);
@@ -167,7 +173,7 @@ fn test_rank_calculation() {
 fn test_unauthorized_caller_rejected() {
     let (env, client, _admin, _market, _referral) = setup();
     let rando = Address::generate(&env);
-    let user  = Address::generate(&env);
+    let user = Address::generate(&env);
     client.add_pts(&rando, &user, &10_u64, &true);
 }
 

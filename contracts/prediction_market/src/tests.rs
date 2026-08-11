@@ -1,4 +1,4 @@
-﻿#![cfg(test)]
+#![cfg(test)]
 
 use super::*;
 use soroban_sdk::{
@@ -7,9 +7,9 @@ use soroban_sdk::{
     Env, String,
 };
 
-use PULSE_token::PULSETokenContract;
 use leaderboard::LeaderboardContract;
 use referral_registry::ReferralRegistryContract;
+use PULSE_token::PULSETokenContract;
 
 // ── Test Infrastructure ───────────────────────────────────────────────────────
 
@@ -64,12 +64,19 @@ fn setup() -> TestSetup {
     let leaderboard_client = leaderboard::LeaderboardContractClient::new(&env, &leaderboard_id);
 
     let referral_id = env.register_contract(None, ReferralRegistryContract);
-    let referral_client = referral_registry::ReferralRegistryContractClient::new(&env, &referral_id);
+    let referral_client =
+        referral_registry::ReferralRegistryContractClient::new(&env, &referral_id);
 
     let market_id = env.register_contract(None, PredictionMarketContract);
     let client = PredictionMarketContractClient::new(&env, &market_id);
 
-    client.initialize(&admin, &token_id, &referral_id, &leaderboard_id, &xlm_sac_id);
+    client.initialize(
+        &admin,
+        &token_id,
+        &referral_id,
+        &leaderboard_id,
+        &xlm_sac_id,
+    );
     leaderboard_client.initialize(&admin, &market_id, &referral_id);
     referral_client.initialize(&admin, &market_id, &token_id, &leaderboard_id, &xlm_sac_id);
 
@@ -879,8 +886,11 @@ fn test_empty_side_resolution_pool_to_fees() {
 
     // The entire pool (total_yes net = 98 XLM) must be swept into AccumulatedFees
     let fees_after = t.client.get_accumulated_fees();
-    assert_eq!(fees_after, fees_before + 98_0000000,
-        "entire YES pool should sweep to fees when NO side is empty");
+    assert_eq!(
+        fees_after,
+        fees_before + 98_0000000,
+        "entire YES pool should sweep to fees when NO side is empty"
+    );
 
     // Admin can withdraw the swept pool
     let treasury = Address::generate(&t.env);
@@ -956,7 +966,8 @@ fn test_e2e_full_inter_contract_flow() {
     assert_eq!(market_id, 1);
 
     // Alice bets YES 100 XLM — has referrer
-    t.client.place_bet(&alice, &market_id, &true, &100_0000000_i128);
+    t.client
+        .place_bet(&alice, &market_id, &true, &100_0000000_i128);
     assert_eq!(t.client.get_accumulated_fees(), 1_5000000);
     assert_eq!(t.xlm.balance(&referrer), 5000000);
     assert_eq!(t.leaderboard_client.get_points(&referrer), 3);
@@ -966,14 +977,16 @@ fn test_e2e_full_inter_contract_flow() {
     assert_eq!(t.client.get_bet_gross(&market_id, &alice), 100_0000000);
 
     // Bob bets NO 200 XLM — no referrer
-    t.client.place_bet(&bob, &market_id, &false, &200_0000000_i128);
+    t.client
+        .place_bet(&bob, &market_id, &false, &200_0000000_i128);
     assert_eq!(t.client.get_accumulated_fees(), 5_5000000);
     // total_bets now = won+lost (0 before claim)
     assert_eq!(t.leaderboard_client.get_stats(&bob).total_bets, 0);
     assert_eq!(t.client.get_market(&market_id).total_no, 196_0000000);
 
     // Alice increases YES (+50 XLM)
-    t.client.place_bet(&alice, &market_id, &true, &50_0000000_i128);
+    t.client
+        .place_bet(&alice, &market_id, &true, &50_0000000_i128);
     let alice_bet = t.client.get_bet(&market_id, &alice);
     assert_eq!(alice_bet.amount, 98_0000000 + 49_0000000);
     assert_eq!(t.client.get_bet_gross(&market_id, &alice), 150_0000000);
@@ -1024,7 +1037,8 @@ fn test_e2e_full_inter_contract_flow() {
     let charlie = Address::generate(&t.env);
     fund_user(&t, &charlie, 500_0000000);
     let charlie_before = t.xlm.balance(&charlie);
-    t.client.place_bet(&charlie, &market2, &true, &100_0000000_i128);
+    t.client
+        .place_bet(&charlie, &market2, &true, &100_0000000_i128);
     t.client.cancel_market(&t.admin, &market2);
     // AccumulatedFees from market2 should be zeroed
     assert_eq!(t.client.get_accumulated_fees(), 0);
@@ -1033,5 +1047,3 @@ fn test_e2e_full_inter_contract_flow() {
     assert_eq!(refunded, 100_0000000);
     assert_eq!(t.xlm.balance(&charlie), charlie_before);
 }
-
-
