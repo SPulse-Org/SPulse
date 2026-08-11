@@ -6,8 +6,8 @@ use soroban_sdk::{
 };
 
 use leaderboard::LeaderboardContract;
-use referral_registry::ReferralRegistryContract;
 use pulse_token::PULSETokenContract;
+use referral_registry::ReferralRegistryContract;
 
 // ── Test Infrastructure ───────────────────────────────────────────────────────
 
