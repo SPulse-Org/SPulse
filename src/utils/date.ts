@@ -1,13 +1,34 @@
-export function formatLeaderboardTimestamp(timestamp: string | number | Date): string {
-  if (!timestamp) return '';
+export interface LeaderboardTimestampOptions {
+  locale?: string;
+  timeZone?: string;
+}
+
+function defaultLocale(): string {
+  return typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US";
+}
+
+function defaultTimeZone(): string {
   try {
-    const date = new Date(timestamp);
-    if (isNaN(date.getTime())) return '';
-    return new Intl.DateTimeFormat(navigator.language || 'en-US', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+export function formatLeaderboardTimestamp(
+  timestamp: string | number | Date,
+  options: LeaderboardTimestampOptions = {},
+): string {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat(options.locale || defaultLocale(), {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: options.timeZone || defaultTimeZone(),
     }).format(date);
-  } catch (err) {
-    return new Date(timestamp).toISOString();
+  } catch {
+    return date.toISOString();
   }
 }
