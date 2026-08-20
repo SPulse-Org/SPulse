@@ -52,7 +52,7 @@ const formatNumber = (value) => new Intl.NumberFormat("en-US").format(value);
 const formatPrice = (value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(value);
 
 function setUpdated() {
-  $("#last-updated").textContent = new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date());
+  $("#last-updated").textContent = SPulseDate.formatLocalTime(new Date(), { includeSeconds: true });
 }
 
 async function fetchJson(url, timeout = 9000) {
@@ -231,7 +231,7 @@ $("#order-form").addEventListener("submit", async (event) => {
   const stake = Math.max(1, Math.min(1000, Number($("#stake-amount").value) || 1));
   const market = currentMarket();
   const probability = state.outcome === "yes" ? market.yes : 100 - market.yes;
-  const position = { title: market.title, outcome: state.outcome, stake: stake.toFixed(0), returns: (stake / (probability / 100)).toFixed(2), time: new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }).format(new Date()) };
+  const position = { title: market.title, outcome: state.outcome, stake: stake.toFixed(0), returns: (stake / (probability / 100)).toFixed(2), time: SPulseDate.formatLocalTime(new Date()) };
 
   if (!market.onchainId) {
     state.positions.unshift(position);
