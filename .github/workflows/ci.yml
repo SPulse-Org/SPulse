@@ -47,14 +47,23 @@ jobs:
     name: Soroban contracts
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: contracts
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Check if contracts exist
+        id: check_contracts
+        shell: bash
+        run: |
+          if [ -d "contracts" ] && [ -f "contracts/Cargo.toml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Soroban contracts moved to dedicated repo; skipping contracts gate."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install pinned Rust toolchain
+        if: steps.check_contracts.outputs.exists == 'true'
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.91.0
@@ -62,6 +71,7 @@ jobs:
           targets: wasm32v1-none
 
       - name: Cache Cargo dependencies
+        if: steps.check_contracts.outputs.exists == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -72,13 +82,21 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Check formatting
+        if: steps.check_contracts.outputs.exists == 'true'
+        working-directory: contracts
         run: cargo fmt --all -- --check
 
       - name: Run Clippy
+        if: steps.check_contracts.outputs.exists == 'true'
+        working-directory: contracts
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Run contract tests
+        if: steps.check_contracts.outputs.exists == 'true'
+        working-directory: contracts
         run: cargo test --workspace --locked
 
       - name: Build release WASM
+        if: steps.check_contracts.outputs.exists == 'true'
+        working-directory: contracts
         run: cargo build --workspace --locked --release --target wasm32v1-none
