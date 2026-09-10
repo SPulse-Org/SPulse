@@ -1,4 +1,4 @@
-import { placeBet } from "./soroban.js";
+import { placeBet, checkTransactionStatus } from "./soroban.js";
 
 const HORIZON_URL = "https://horizon.stellar.org";
 const COINGECKO_URL = "https://api.coingecko.com/api/v3";
@@ -24,12 +24,14 @@ function loadPositions() {
       if (!position || typeof position !== "object") return false;
       const validExplorer = !position.explorerUrl
         || (typeof position.explorerUrl === "string" && position.explorerUrl.startsWith(TESTNET_EXPLORER_PREFIX));
+      const validStatus = !position.status || ["pending", "confirmed", "failed"].includes(position.status);
       return marketTitles.has(position.title)
         && ["yes", "no"].includes(position.outcome)
         && /^\d{1,4}(\.\d{1,2})?$/.test(position.stake)
         && /^\d{1,8}(\.\d{1,2})?$/.test(position.returns)
         && typeof position.time === "string"
         && /^[0-9: APMapm.]{1,20}$/.test(position.time)
+        && validStatus
         && validExplorer;
     }).slice(0, 20);
   } catch {
@@ -184,9 +186,16 @@ function selectMarket(index, scroll = true) {
 function renderPositions() {
   if (!state.positions.length) return;
   $("#position-list").innerHTML = state.positions.map((position) => {
-    const result = position.explorerUrl
-      ? `<a class="position-result onchain" href="${position.explorerUrl}" target="_blank" rel="noreferrer">Confirmed <svg><use href="#i-external" /></svg></a>`
-      : '<span class="position-result">Simulated</span>';
+    let result;
+    if (position.status === "pending") {
+      result = `<a class="position-result pending" href="${position.explorerUrl || '#'}" target="_blank" rel="noreferrer">Pending <svg><use href="#i-external" /></svg></a>`;
+    } else if (position.status === "failed") {
+      result = '<span class="position-result failed">Failed</span>';
+    } else if (position.explorerUrl) {
+      result = `<a class="position-result onchain" href="${position.explorerUrl}" target="_blank" rel="noreferrer">Confirmed <svg><use href="#i-external" /></svg></a>`;
+    } else {
+      result = '<span class="position-result">Simulated</span>';
+    }
     return `<article class="position-card"><div><h3>${position.title}</h3><p>Created ${position.time}</p></div><div class="position-stat"><span>Outcome</span><strong class="${position.outcome}">${position.outcome.toUpperCase()}</strong></div><div class="position-stat"><span>Stake</span><strong>${position.stake} XLM</strong></div><div class="position-stat"><span>Potential return</span><strong>${position.returns} XLM</strong></div>${result}</article>`;
   }).join("");
 }
@@ -206,6 +215,38 @@ function showToast(message, isError = false) {
 window.showWalletNotice = (message, isError = false) => {
   showToast(message, isError);
 };
+
+const inFlightMarkets = new Set();
+
+function reconcilePendingPosition(position) {
+  if (!position?.hash || position.status !== "pending") return;
+  let attempts = 0;
+  const pollTimer = setInterval(async () => {
+    attempts += 1;
+    if (attempts > 30 || position.status !== "pending") {
+      clearInterval(pollTimer);
+      return;
+    }
+    try {
+      const res = await checkTransactionStatus(position.hash);
+      if (res?.status === "SUCCESS") {
+        position.status = "confirmed";
+        savePositions();
+        renderPositions();
+        clearInterval(pollTimer);
+        window.stellarWallet?.refreshBalance().catch(() => {});
+        showToast("Pending position confirmed on Stellar Testnet!");
+      } else if (res?.status === "FAILED") {
+        position.status = "failed";
+        savePositions();
+        renderPositions();
+        clearInterval(pollTimer);
+      }
+    } catch {
+      // transient network poll error
+    }
+  }, 2000);
+}
 
 document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
   document.querySelectorAll("[data-filter]").forEach((item) => item.classList.remove("active"));
@@ -231,7 +272,13 @@ $("#order-form").addEventListener("submit", async (event) => {
   const stake = Math.max(1, Math.min(1000, Number($("#stake-amount").value) || 1));
   const market = currentMarket();
   const probability = state.outcome === "yes" ? market.yes : 100 - market.yes;
-  const position = { title: market.title, outcome: state.outcome, stake: stake.toFixed(0), returns: (stake / (probability / 100)).toFixed(2), time: new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }).format(new Date()) };
+  const position = {
+    title: market.title,
+    outcome: state.outcome,
+    stake: stake.toFixed(0),
+    returns: (stake / (probability / 100)).toFixed(2),
+    time: new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }).format(new Date()),
+  };
 
   if (!market.onchainId) {
     state.positions.unshift(position);
@@ -239,6 +286,11 @@ $("#order-form").addEventListener("submit", async (event) => {
     renderPositions();
     showToast("Position added to your simulation dashboard.");
     $("#activity").scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+
+  if (inFlightMarkets.has(market.onchainId)) {
+    window.showWalletNotice("A transaction is already in flight for this market. Please wait for confirmation.", true);
     return;
   }
 
@@ -262,6 +314,10 @@ $("#order-form").addEventListener("submit", async (event) => {
   const label = submit.querySelector("span");
   const originalLabel = label.textContent;
   submit.disabled = true;
+  inFlightMarkets.add(market.onchainId);
+
+  let pendingPosition = null;
+
   try {
     const transaction = await placeBet({
       address: walletState.address,
@@ -270,16 +326,66 @@ $("#order-form").addEventListener("submit", async (event) => {
       amountXlm: String(stake),
       signTransaction: wallet.signTransaction,
       onStatus: (status) => { label.textContent = status; },
+      onSubmitted: ({ hash, explorerUrl }) => {
+        pendingPosition = {
+          ...position,
+          status: "pending",
+          hash,
+          explorerUrl,
+          marketId: market.onchainId,
+        };
+        state.positions.unshift(pendingPosition);
+        savePositions();
+        renderPositions();
+        showToast("Transaction submitted to Testnet. Waiting for confirmation...");
+      },
     });
-    state.positions.unshift({ ...position, explorerUrl: transaction.explorerUrl, hash: transaction.hash });
+
+    if (pendingPosition) {
+      pendingPosition.status = "confirmed";
+      pendingPosition.hash = transaction.hash;
+      pendingPosition.explorerUrl = transaction.explorerUrl;
+    } else {
+      state.positions.unshift({
+        ...position,
+        status: "confirmed",
+        explorerUrl: transaction.explorerUrl,
+        hash: transaction.hash,
+        marketId: market.onchainId,
+      });
+    }
     savePositions();
     renderPositions();
     await wallet.refreshBalance();
     showToast("Position confirmed on Stellar Testnet.");
     $("#activity").scrollIntoView({ behavior: "smooth" });
   } catch (error) {
-    window.showWalletNotice(error.message || "The Testnet position could not be submitted.", true);
+    if (error?.name === "TransactionTimeoutError" || error?.explorerUrl) {
+      const explorerUrl = error.explorerUrl || pendingPosition?.explorerUrl;
+      const hash = error.hash || pendingPosition?.hash;
+      if (pendingPosition) {
+        pendingPosition.status = "pending";
+        pendingPosition.hash = hash;
+        pendingPosition.explorerUrl = explorerUrl;
+        savePositions();
+        renderPositions();
+        reconcilePendingPosition(pendingPosition);
+      }
+      window.showWalletNotice("Transaction is still confirming on Stellar Testnet. It is recorded as pending in your positions.", false);
+      $("#activity").scrollIntoView({ behavior: "smooth" });
+    } else {
+      if (pendingPosition) {
+        const idx = state.positions.indexOf(pendingPosition);
+        if (idx !== -1) {
+          state.positions.splice(idx, 1);
+          savePositions();
+          renderPositions();
+        }
+      }
+      window.showWalletNotice(error?.message || "The Testnet position could not be submitted.", true);
+    }
   } finally {
+    inFlightMarkets.delete(market.onchainId);
     submit.disabled = false;
     label.textContent = originalLabel;
   }
@@ -320,7 +426,9 @@ $("#year").textContent = new Date().getFullYear();
 renderMarkets();
 selectMarket(0, false);
 renderPositions();
+state.positions.filter((p) => p.status === "pending" && p.hash).forEach(reconcilePendingPosition);
 updateNetwork();
 updatePrice();
 setInterval(updateNetwork, 10000);
 setInterval(updatePrice, 60000);
+
