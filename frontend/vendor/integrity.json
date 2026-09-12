@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "vendored_at": "2026-09-09T03:19:00Z",
+  "packages": {
+    "@stellar/stellar-sdk": {
+      "version": "14.5.0",
+      "source": "https://esm.sh/@stellar/stellar-sdk@14.5.0?bundle",
+      "vendored_file": "frontend/vendor/stellar-sdk.js",
+      "sha256": "sha256-a94982482ae4c644f6c485c6b121bdbb93471fb456f3ce7146d81daf64104140",
+      "sha384": "sha384-153704f526c9b7e4937c204c9a651bc641445c004c4ce581cc68a1377bf6d730443f6e20a6e359dd80a6a0410022e24f",
+      "size": 1020644
+    },
+    "@stellar/freighter-api": {
+      "version": "5.0.0",
+      "source": "https://esm.sh/@stellar/freighter-api@5.0.0?bundle",
+      "vendored_file": "frontend/vendor/freighter-api.js",
+      "sha256": "sha256-44a97accefe5e65168570784fe59efffd5211da2a56248658068dc97c67a3ae7",
+      "sha384": "sha384-c1e342302f7c22bfd6d4e818f44977552f86d833f24b31f71ccb00e1a5ac6f32d052ee1ec15e2933876654c1e4ec3faa",
+      "size": 10895
+    }
+  }
+}

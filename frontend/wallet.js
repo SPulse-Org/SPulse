@@ -7,15 +7,19 @@ const connectButton = document.querySelector("#connect-wallet");
 const panelAction = document.querySelector("#wallet-panel-action");
 const panelTitle = document.querySelector("#wallet-panel-title");
 const panelDetail = document.querySelector("#wallet-panel-detail");
+const LOCAL_API_PATH = "./vendor/freighter-api.js";
+const CDN_API_URL = "https://esm.sh/@stellar/freighter-api@5.0.0?bundle";
 let apiPromise;
 
 function loadApi() {
   if (!apiPromise) {
-    apiPromise = import("https://esm.sh/@stellar/freighter-api@5.0.0?bundle")
-      .catch(() => {
+    apiPromise = import(LOCAL_API_PATH).catch((localErr) => {
+      console.warn("Vendored Freighter API fallback to CDN:", localErr);
+      return import(CDN_API_URL).catch(() => {
         apiPromise = null;
         throw new Error("Wallet service could not load. Check your connection or browser privacy settings.");
       });
+    });
   }
   return apiPromise;
 }

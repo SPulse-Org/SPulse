@@ -28,9 +28,6 @@ deploy-output.json
 deploy-mainnet-output.json
 
 # ── IDE / Editor ───────────────────────────────────────────────────────────────
-.vscode/
-!.vscode/settings.json
-!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
@@ -50,3 +47,7 @@ yarn-error.log*
 
 # ── Stellar CLI local identity keystore ────────────────────────────────────────
 .stellar/
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
