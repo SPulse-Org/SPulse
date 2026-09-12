@@ -49,17 +49,49 @@ function simulationError(error) {
   return message;
 }
 
-async function waitForTransaction(server, hash, attempts = 30) {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const result = await server.getTransaction(hash);
-    if (result.status === "SUCCESS") return result;
-    if (result.status === "FAILED") throw new Error("The transaction failed on Stellar Testnet.");
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+export class TransactionTimeoutError extends Error {
+  constructor(message, hash, explorerUrl) {
+    super(message);
+    this.name = "TransactionTimeoutError";
+    this.hash = hash;
+    this.explorerUrl = explorerUrl;
   }
-  throw new Error("The transaction is still pending. Check it in the Testnet explorer.");
 }
 
-export async function placeBet({ address, marketId, isYes, amountXlm, signTransaction, onStatus }) {
+export class TransactionFailedError extends Error {
+  constructor(message, hash, errorResult) {
+    super(message);
+    this.name = "TransactionFailedError";
+    this.hash = hash;
+    this.errorResult = errorResult;
+  }
+}
+
+export async function checkTransactionStatus(hash) {
+  if (!hash) return null;
+  const sdk = await loadSdk();
+  const server = new sdk.rpc.Server(TESTNET.rpcUrl);
+  return await server.getTransaction(hash);
+}
+
+async function waitForTransaction(server, hash, explorerUrl, attempts = 60, onStatus) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    onStatus?.(`Waiting for confirmation (${attempt + 1}/${attempts})`);
+    const result = await server.getTransaction(hash);
+    if (result.status === "SUCCESS") return result;
+    if (result.status === "FAILED") {
+      throw new TransactionFailedError("The transaction failed on Stellar Testnet.", hash, result.errorResult || result);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  throw new TransactionTimeoutError(
+    `The transaction is still pending on Stellar Testnet after ${Math.round(attempts * 1.5)}s. Hash: ${hash}. Check explorer: ${explorerUrl}`,
+    hash,
+    explorerUrl
+  );
+}
+
+export async function placeBet({ address, marketId, isYes, amountXlm, signTransaction, onStatus, onSubmitted, pollAttempts = 60 }) {
   if (!address) throw new Error("Connect a funded Testnet wallet first.");
   if (!Number.isSafeInteger(marketId) || marketId < 1) throw new Error("Invalid on-chain market ID.");
   if (typeof signTransaction !== "function") throw new Error("Wallet signing is unavailable.");
@@ -105,14 +137,25 @@ export async function placeBet({ address, marketId, isYes, amountXlm, signTransa
   onStatus?.("Submitting to Testnet");
   const submission = await server.sendTransaction(signedTransaction);
   if (submission.status !== "PENDING") {
-    throw new Error(submission.errorResult ? "Stellar RPC rejected the transaction." : `Unexpected submission status: ${submission.status}`);
+    const errorDetail = submission.errorResultXdr || (submission.errorResult ? JSON.stringify(submission.errorResult) : submission.status);
+    const err = new Error(`Stellar RPC rejected transaction (${submission.status}): ${errorDetail}`);
+    err.status = submission.status;
+    err.errorResult = submission.errorResult;
+    throw err;
   }
 
+  const explorerUrl = `${TESTNET.explorerUrl}/${submission.hash}`;
+  onSubmitted?.({
+    hash: submission.hash,
+    explorerUrl,
+    amountStroops: amount,
+  });
+
   onStatus?.("Waiting for confirmation");
-  await waitForTransaction(server, submission.hash);
+  await waitForTransaction(server, submission.hash, explorerUrl, pollAttempts, onStatus);
   return {
     hash: submission.hash,
-    explorerUrl: `${TESTNET.explorerUrl}/${submission.hash}`,
+    explorerUrl,
     amountStroops: amount,
   };
 }
