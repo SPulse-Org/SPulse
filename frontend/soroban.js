@@ -1,3 +1,4 @@
+const LOCAL_SDK_PATH = "./vendor/stellar-sdk.js";
 const SDK_URL = "https://esm.sh/@stellar/stellar-sdk@14.5.0?bundle";
 
 export const TESTNET = Object.freeze({
@@ -11,9 +12,12 @@ let sdkPromise;
 
 function loadSdk() {
   if (!sdkPromise) {
-    sdkPromise = import(SDK_URL).catch((error) => {
-      sdkPromise = null;
-      throw new Error(`Stellar SDK could not load: ${error.message}`);
+    sdkPromise = import(LOCAL_SDK_PATH).catch((localErr) => {
+      console.warn("Vendored SDK load fallback to CDN:", localErr);
+      return import(SDK_URL).catch((error) => {
+        sdkPromise = null;
+        throw new Error(`Stellar SDK could not load: ${error.message}`);
+      });
     });
   }
   return sdkPromise;
