@@ -139,6 +139,7 @@ async function restore() {
     state.address = result.address;
     await loadBalance();
     render();
+    window.dispatchEvent(new CustomEvent("spulse:wallet", { detail: { ...state } }));
   } catch { render(); }
 }
 

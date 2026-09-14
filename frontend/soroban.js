@@ -164,4 +164,131 @@ export async function placeBet({ address, marketId, isYes, amountXlm, signTransa
   };
 }
 
+function createDummySource(address) {
+  const addr = address || "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
+  return {
+    accountId: () => addr,
+    sequenceNumber: () => "0",
+    incrementSequenceNumber: () => {},
+  };
+}
+
+export async function getUserPositions(address) {
+  if (!address) return [];
+  try {
+    const rawSdk = await loadSdk();
+    const sdk = rawSdk?.Contract ? rawSdk : (rawSdk?.default || rawSdk);
+    const { BASE_FEE, Contract, TransactionBuilder, nativeToScVal, scValToNative, rpc } = sdk;
+    const server = new rpc.Server(TESTNET.rpcUrl);
+    const contract = new Contract(TESTNET.predictionMarketContract);
+
+    const simulateCall = async (op) => {
+      const tx = new TransactionBuilder(createDummySource(address), {
+        fee: BASE_FEE,
+        networkPassphrase: TESTNET.networkPassphrase,
+      })
+        .addOperation(op)
+        .setTimeout(30)
+        .build();
+      return await server.simulateTransaction(tx);
+    };
+
+    let marketCount = 3;
+    try {
+      const simCount = await simulateCall(contract.call("get_market_count"));
+      if (rpc.Api.isSimulationSuccess(simCount)) {
+        const count = Number(scValToNative(simCount.result.retval));
+        if (Number.isSafeInteger(count) && count > 0) marketCount = count;
+      }
+    } catch {
+      // Fallback to default marketCount
+    }
+
+    const marketIds = [];
+    for (let i = 1; i <= marketCount; i += 1) marketIds.push(i);
+
+    const positions = await Promise.all(
+      marketIds.map(async (id) => {
+        try {
+          const simBet = await simulateCall(
+            contract.call("get_bet", nativeToScVal(BigInt(id), { type: "u64" }), nativeToScVal(address, { type: "address" }))
+          );
+          if (!rpc.Api.isSimulationSuccess(simBet)) return null;
+
+          const bet = scValToNative(simBet.result.retval);
+          if (!bet || typeof bet !== "object" || !bet.amount) return null;
+
+          let market = null;
+          try {
+            const simMarket = await simulateCall(contract.call("get_market", nativeToScVal(BigInt(id), { type: "u64" })));
+            if (rpc.Api.isSimulationSuccess(simMarket)) {
+              market = scValToNative(simMarket.result.retval);
+            }
+          } catch {
+            // Market detail fallback
+          }
+
+          const isYes = Boolean(bet.is_yes);
+          const outcome = isYes ? "yes" : "no";
+          const rawAmount = Number(bet.amount);
+          const stakeNum = rawAmount / 10_000_000;
+          const stake = stakeNum.toFixed(2);
+
+          let marketStatus = "Open";
+          let payoutState = "Active";
+          let returns = (stakeNum * 2).toFixed(2);
+
+          if (market?.cancelled) {
+            marketStatus = "Cancelled";
+            payoutState = bet.claimed ? "Refunded" : "Refund Available";
+            returns = stake;
+          } else if (market?.resolved) {
+            const resolvedYes = Boolean(market.outcome);
+            marketStatus = `Resolved (${resolvedYes ? "YES" : "NO"})`;
+            const won = isYes === resolvedYes;
+            if (won) {
+              payoutState = bet.claimed ? "Claimed" : "Won (Unclaimed)";
+              const winningPool = resolvedYes ? Number(market.total_yes) : Number(market.total_no);
+              const totalPool = Number(market.total_yes) + Number(market.total_no);
+              returns = winningPool > 0
+                ? ((rawAmount / winningPool) * totalPool / 10_000_000).toFixed(2)
+                : stake;
+            } else {
+              payoutState = "Lost";
+              returns = "0.00";
+            }
+          } else if (market) {
+            const sidePool = isYes ? Number(market.total_yes) : Number(market.total_no);
+            const totalPool = Number(market.total_yes) + Number(market.total_no);
+            if (sidePool > 0 && totalPool > 0) {
+              returns = ((rawAmount / sidePool) * totalPool / 10_000_000).toFixed(2);
+            }
+          }
+
+          return {
+            marketId: id,
+            title: market?.question || `Market #${id}`,
+            outcome,
+            stake,
+            returns,
+            marketStatus,
+            payoutState,
+            status: "confirmed",
+            explorerUrl: `https://stellar.expert/explorer/testnet/contract/${TESTNET.predictionMarketContract}`,
+            time: "On-chain",
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return positions.filter(Boolean);
+  } catch (err) {
+    console.warn("Could not load user on-chain positions:", err);
+    return [];
+  }
+}
+
 export const units = Object.freeze({ xlmToStroops });
+
