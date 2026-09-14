@@ -1,9 +1,13 @@
-import { placeBet, checkTransactionStatus } from "./soroban.js";
+import { placeBet, checkTransactionStatus, getUserPositions } from "./soroban.js";
 
 const HORIZON_URL = "https://horizon.stellar.org";
 const COINGECKO_URL = "https://api.coingecko.com/api/v3";
-const POSITION_STORAGE_KEY = "spulse:session-positions";
-const TESTNET_EXPLORER_PREFIX = "https://stellar.expert/explorer/testnet/tx/";
+const POSITION_STORAGE_PREFIX = "spulse:positions:";
+const TESTNET_EXPLORER_PREFIX = "https://stellar.expert/explorer/testnet/";
+const EMPTY_POSITIONS_HTML = '<div class="empty-state"><svg><use href="#i-activity" /></svg><h3>No positions yet</h3><p>Choose a market and preview your first position.</p><a href="#trade" class="button button-quiet">Open trading workspace</a></div>';
+
+let activeWalletAddress = "";
+let activeSyncAddress = "";
 
 const state = { price: null, change: null, selectedMarket: 0, outcome: "yes", positions: [] };
 const baseMarkets = [
@@ -15,39 +19,81 @@ const baseMarkets = [
   { category: "crypto", title: "Will XLM outperform Bitcoin this month?", detail: "Compares monthly USD returns from the same public pricing source.", yes: 43, volume: "Preview", close: "Month end" },
 ];
 
-function loadPositions() {
+function getStorageKey(address) {
+  return address ? `${POSITION_STORAGE_PREFIX}${address}` : null;
+}
+
+function loadPositions(address) {
+  const key = getStorageKey(address);
+  if (!key) return [];
   try {
-    const saved = JSON.parse(sessionStorage.getItem(POSITION_STORAGE_KEY) || "[]");
+    const saved = JSON.parse(localStorage.getItem(key) || "[]");
     if (!Array.isArray(saved)) return [];
-    const marketTitles = new Set(baseMarkets.map((market) => market.title));
     return saved.filter((position) => {
       if (!position || typeof position !== "object") return false;
       const validExplorer = !position.explorerUrl
         || (typeof position.explorerUrl === "string" && position.explorerUrl.startsWith(TESTNET_EXPLORER_PREFIX));
       const validStatus = !position.status || ["pending", "confirmed", "failed"].includes(position.status);
-      return marketTitles.has(position.title)
+      return typeof position.title === "string" && position.title.length > 0 && position.title.length < 250
         && ["yes", "no"].includes(position.outcome)
         && /^\d{1,4}(\.\d{1,2})?$/.test(position.stake)
         && /^\d{1,8}(\.\d{1,2})?$/.test(position.returns)
         && typeof position.time === "string"
-        && /^[0-9: APMapm.]{1,20}$/.test(position.time)
         && validStatus
         && validExplorer;
-    }).slice(0, 20);
+    }).slice(0, 30);
   } catch {
     return [];
   }
 }
 
-function savePositions() {
+function savePositions(address = activeWalletAddress || window.stellarWallet?.getState()?.address || "") {
+  const key = getStorageKey(address);
+  if (!key) return;
   try {
-    sessionStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(state.positions.slice(0, 20)));
+    localStorage.setItem(key, JSON.stringify(state.positions.slice(0, 30)));
   } catch {
     // Storage can be unavailable in private browsing; positions still work in memory.
   }
 }
 
-state.positions = loadPositions();
+async function syncOnChainPositions(address) {
+  if (!address) return;
+  activeSyncAddress = address;
+  try {
+    const onChainPositions = await getUserPositions(address);
+    if (activeSyncAddress !== address) return;
+
+    // Preserve local pending bets that haven't finalized on chain yet
+    const pendingLocal = state.positions.filter((p) => p.status === "pending");
+    const simulatedLocal = state.positions.filter((p) => !p.marketId);
+    const reconciled = [...pendingLocal];
+
+    for (const pos of onChainPositions) {
+      const pIdx = reconciled.findIndex((p) => p.marketId === pos.marketId);
+      if (pIdx !== -1) {
+        reconciled.splice(pIdx, 1);
+      }
+      const match = baseMarkets.find((m) => m.onchainId === pos.marketId);
+      if (match) {
+        pos.title = match.title;
+      }
+      reconciled.push(pos);
+    }
+
+    for (const sim of simulatedLocal) {
+      if (!reconciled.some((r) => r.title === sim.title && r.time === sim.time)) {
+        reconciled.push(sim);
+      }
+    }
+
+    state.positions = reconciled;
+    savePositions(address);
+    renderPositions();
+  } catch (err) {
+    console.warn("Could not sync on-chain positions:", err);
+  }
+}
 
 const $ = (selector) => document.querySelector(selector);
 const formatNumber = (value) => new Intl.NumberFormat("en-US").format(value);
@@ -184,7 +230,10 @@ function selectMarket(index, scroll = true) {
 }
 
 function renderPositions() {
-  if (!state.positions.length) return;
+  if (!state.positions.length) {
+    $("#position-list").innerHTML = EMPTY_POSITIONS_HTML;
+    return;
+  }
   $("#position-list").innerHTML = state.positions.map((position) => {
     let result;
     if (position.status === "pending") {
@@ -196,7 +245,7 @@ function renderPositions() {
     } else {
       result = '<span class="position-result">Simulated</span>';
     }
-    return `<article class="position-card"><div><h3>${position.title}</h3><p>Created ${position.time}</p></div><div class="position-stat"><span>Outcome</span><strong class="${position.outcome}">${position.outcome.toUpperCase()}</strong></div><div class="position-stat"><span>Stake</span><strong>${position.stake} XLM</strong></div><div class="position-stat"><span>Potential return</span><strong>${position.returns} XLM</strong></div>${result}</article>`;
+    return `<article class="position-card"><div><h3>${position.title}</h3><p>Created ${position.time}</p></div><div class="position-stat"><span>Outcome</span><strong class="${position.outcome}">${position.outcome.toUpperCase()}</strong></div><div class="position-stat"><span>Stake</span><strong>${position.stake} XLM</strong></div><div class="position-stat"><span>Potential return</span><strong>${position.returns} XLM</strong></div><div class="position-stat"><span>Market</span><strong>${position.marketStatus || "Open"}</strong></div><div class="position-stat"><span>Payout</span><strong>${position.payoutState || "Active"}</strong></div>${result}</article>`;
   }).join("");
 }
 
@@ -330,12 +379,14 @@ $("#order-form").addEventListener("submit", async (event) => {
         pendingPosition = {
           ...position,
           status: "pending",
+          marketStatus: "Open",
+          payoutState: "Pending",
           hash,
           explorerUrl,
           marketId: market.onchainId,
         };
         state.positions.unshift(pendingPosition);
-        savePositions();
+        savePositions(walletState.address);
         renderPositions();
         showToast("Transaction submitted to Testnet. Waiting for confirmation...");
       },
@@ -343,20 +394,25 @@ $("#order-form").addEventListener("submit", async (event) => {
 
     if (pendingPosition) {
       pendingPosition.status = "confirmed";
+      pendingPosition.marketStatus = "Open";
+      pendingPosition.payoutState = "Active";
       pendingPosition.hash = transaction.hash;
       pendingPosition.explorerUrl = transaction.explorerUrl;
     } else {
       state.positions.unshift({
         ...position,
         status: "confirmed",
+        marketStatus: "Open",
+        payoutState: "Active",
         explorerUrl: transaction.explorerUrl,
         hash: transaction.hash,
         marketId: market.onchainId,
       });
     }
-    savePositions();
+    savePositions(walletState.address);
     renderPositions();
     await wallet.refreshBalance();
+    syncOnChainPositions(walletState.address).catch(() => {});
     showToast("Position confirmed on Stellar Testnet.");
     $("#activity").scrollIntoView({ behavior: "smooth" });
   } catch (error) {
@@ -365,9 +421,11 @@ $("#order-form").addEventListener("submit", async (event) => {
       const hash = error.hash || pendingPosition?.hash;
       if (pendingPosition) {
         pendingPosition.status = "pending";
+        pendingPosition.marketStatus = "Open";
+        pendingPosition.payoutState = "Pending";
         pendingPosition.hash = hash;
         pendingPosition.explorerUrl = explorerUrl;
-        savePositions();
+        savePositions(walletState.address);
         renderPositions();
         reconcilePendingPosition(pendingPosition);
       }
@@ -378,7 +436,7 @@ $("#order-form").addEventListener("submit", async (event) => {
         const idx = state.positions.indexOf(pendingPosition);
         if (idx !== -1) {
           state.positions.splice(idx, 1);
-          savePositions();
+          savePositions(walletState.address);
           renderPositions();
         }
       }
@@ -422,13 +480,47 @@ window.matchMedia("(min-width: 681px)").addEventListener("change", (event) => {
   if (event.matches) setMenuOpen(false);
 });
 
+window.addEventListener("spulse:wallet", async (event) => {
+  const address = event.detail?.address || "";
+  if (address === activeWalletAddress) return;
+  activeWalletAddress = address;
+
+  if (!address) {
+    state.positions = [];
+    renderPositions();
+    return;
+  }
+
+  // 1. Immediately render cached positions for responsiveness
+  state.positions = loadPositions(address);
+  renderPositions();
+
+  // 2. Reconcile any pending local positions
+  state.positions.filter((p) => p.status === "pending" && p.hash).forEach(reconcilePendingPosition);
+
+  // 3. Reconstruct positions from on-chain contract state
+  await syncOnChainPositions(address);
+});
+
 $("#year").textContent = new Date().getFullYear();
 renderMarkets();
 selectMarket(0, false);
-renderPositions();
-state.positions.filter((p) => p.status === "pending" && p.hash).forEach(reconcilePendingPosition);
+
+const initialAddress = window.stellarWallet?.getState()?.address || "";
+if (initialAddress) {
+  activeWalletAddress = initialAddress;
+  state.positions = loadPositions(initialAddress);
+  renderPositions();
+  state.positions.filter((p) => p.status === "pending" && p.hash).forEach(reconcilePendingPosition);
+  syncOnChainPositions(initialAddress);
+} else {
+  state.positions = [];
+  renderPositions();
+}
+
 updateNetwork();
 updatePrice();
 setInterval(updateNetwork, 10000);
 setInterval(updatePrice, 60000);
+
 
