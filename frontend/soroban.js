@@ -164,4 +164,63 @@ export async function placeBet({ address, marketId, isYes, amountXlm, signTransa
   };
 }
 
+export function calculateMarketProbability(totalYes, totalNo, fallback = 50) {
+  try {
+    const y = BigInt(totalYes ?? 0);
+    const n = BigInt(totalNo ?? 0);
+    const total = y + n;
+    if (total <= 0n) return fallback;
+    const pct = Number((y * 100n) / total);
+    return Math.max(1, Math.min(99, pct));
+  } catch {
+    return fallback;
+  }
+}
+
+export function validateMarketForTrading(market, currentTimestampSec = Math.floor(Date.now() / 1000)) {
+  if (!market) {
+    throw new Error("Market data could not be retrieved from the network.");
+  }
+  if (market.cancelled) {
+    throw new Error("This market was cancelled by the administrator.");
+  }
+  if (market.resolved) {
+    throw new Error("This market has already been resolved.");
+  }
+  if (market.end_time && currentTimestampSec >= Number(market.end_time)) {
+    throw new Error("This market has ended and is awaiting resolution.");
+  }
+  return true;
+}
+
+export async function getMarket(marketId) {
+  if (!Number.isSafeInteger(marketId) || marketId < 1) {
+    throw new Error("Invalid on-chain market ID.");
+  }
+  const sdk = await loadSdk();
+  const { Account, Contract, Networks, TransactionBuilder, nativeToScVal, scValToNative, rpc } = sdk;
+  const server = new rpc.Server(TESTNET.rpcUrl);
+  const contract = new Contract(TESTNET.predictionMarketContract);
+
+  const dummyAccount = new Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0");
+  const transaction = new TransactionBuilder(dummyAccount, {
+    fee: "100",
+    networkPassphrase: Networks.TESTNET,
+  })
+    .addOperation(contract.call(
+      "get_market",
+      nativeToScVal(BigInt(marketId), { type: "u64" }),
+    ))
+    .setTimeout(30)
+    .build();
+
+  const simResult = await server.simulateTransaction(transaction);
+  if (rpc.Api.isSimulationError(simResult) || !simResult.result?.retval) {
+    const errMsg = simResult.error || "Market not found on chain";
+    throw new Error(`Could not load on-chain market #${marketId}: ${errMsg}`);
+  }
+  return scValToNative(simResult.result.retval);
+}
+
 export const units = Object.freeze({ xlmToStroops });
+
