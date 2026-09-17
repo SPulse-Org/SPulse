@@ -1,4 +1,4 @@
-import { placeBet, checkTransactionStatus } from "./soroban.js";
+import { placeBet, checkTransactionStatus, getMarket, calculateMarketProbability, validateMarketForTrading } from "./soroban.js";
 
 const HORIZON_URL = "https://horizon.stellar.org";
 const COINGECKO_URL = "https://api.coingecko.com/api/v3";
@@ -170,8 +170,34 @@ function selectMarket(index, scroll = true) {
     submitLabel.textContent = "Place Testnet position";
     mode.innerHTML = '<svg><use href="#i-zap" /></svg> Live Testnet market';
     mode.classList.add("live");
-    $("#trade-status").textContent = "Testnet open";
-    $("#order-disclaimer").textContent = "Freighter will show the exact contract transaction before anything is submitted.";
+    $("#trade-status").textContent = "Verifying contract...";
+    $("#order-disclaimer").textContent = `Querying Testnet Market #${market.onchainId} on Soroban...`;
+
+    getMarket(market.onchainId)
+      .then((onchain) => {
+        if (state.selectedMarket !== index) return;
+        if (onchain?.question && onchain.question !== market.title) {
+          market.title = onchain.question;
+          $("#trade-title").textContent = onchain.question;
+        }
+        if (onchain?.total_yes !== undefined && onchain?.total_no !== undefined) {
+          const poolYes = calculateMarketProbability(onchain.total_yes, onchain.total_no, market.yes);
+          market.yes = poolYes;
+          $("#trade-probability").textContent = `${market.yes}% Yes`;
+          $("#trade-probability-bar").style.width = `${market.yes}%`;
+          $("#yes-price").textContent = `${market.yes}%`;
+          $("#no-price").textContent = `${100 - market.yes}%`;
+          updateOrderPreview();
+        }
+        const statusText = onchain?.resolved ? "Resolved" : onchain?.cancelled ? "Cancelled" : "Testnet open";
+        $("#trade-status").textContent = statusText;
+        $("#order-disclaimer").textContent = `Verified Testnet Market #${market.onchainId}. Question and odds match contract state.`;
+      })
+      .catch((error) => {
+        console.warn("Could not verify market on-chain:", error);
+        $("#trade-status").textContent = "Testnet open";
+        $("#order-disclaimer").textContent = "Freighter will show the exact contract transaction before anything is submitted.";
+      });
   } else {
     submitLabel.textContent = "Preview position";
     mode.innerHTML = '<svg><use href="#i-help" /></svg> Simulation mode';
@@ -319,6 +345,14 @@ $("#order-form").addEventListener("submit", async (event) => {
   let pendingPosition = null;
 
   try {
+    label.textContent = "Verifying market on-chain...";
+    const onchain = await getMarket(market.onchainId);
+    validateMarketForTrading(onchain);
+    if (onchain?.question && onchain.question !== market.title) {
+      market.title = onchain.question;
+      position.title = onchain.question;
+    }
+
     const transaction = await placeBet({
       address: walletState.address,
       marketId: market.onchainId,
