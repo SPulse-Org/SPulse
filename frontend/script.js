@@ -1,4 +1,5 @@
 import { placeBet, checkTransactionStatus } from "./soroban.js";
+import { escapeHtml, sanitizeUrl } from "./sanitize.js";
 
 const HORIZON_URL = "https://horizon.stellar.org";
 const COINGECKO_URL = "https://api.coingecko.com/api/v3";
@@ -127,9 +128,9 @@ function renderMarkets(filter = "all") {
   }).filter((market) => filter === "all" || market.category === filter);
   $("#market-list").innerHTML = markets.map((market) => {
     const index = baseMarkets.findIndex((item) => item.title === market.title);
-    const badge = market.onchainId ? `<span class="market-badge live">Testnet #${market.onchainId}</span>` : '<span class="market-badge">Demonstration</span>';
+    const badge = market.onchainId ? `<span class="market-badge live">Testnet #${escapeHtml(market.onchainId)}</span>` : '<span class="market-badge">Demonstration</span>';
     const action = market.onchainId ? "Place position" : "Preview market";
-    return `<article class="market-card"><div class="market-card-header"><span class="category">${market.category}</span>${badge}</div><h3>${market.title}</h3><p>${market.detail}</p><div class="probability" aria-label="Yes ${market.yes} percent"><span style="width:${market.yes}%"></span></div><div class="outcomes"><strong class="yes">Yes ${market.yes}%</strong><strong class="no">No ${100 - market.yes}%</strong></div><div class="market-card-action"><div class="market-meta"><span>${market.close}</span></div><button class="trade-link" type="button" data-trade-index="${index}">${action} <svg><use href="#i-arrow" /></svg></button></div></article>`;
+    return `<article class="market-card"><div class="market-card-header"><span class="category">${escapeHtml(market.category)}</span>${badge}</div><h3>${escapeHtml(market.title)}</h3><p>${escapeHtml(market.detail)}</p><div class="probability" aria-label="Yes ${market.yes} percent"><span style="width:${Math.max(0, Math.min(100, Number(market.yes) || 0))}%"></span></div><div class="outcomes"><strong class="yes">Yes ${escapeHtml(market.yes)}%</strong><strong class="no">No ${100 - market.yes}%</strong></div><div class="market-card-action"><div class="market-meta"><span>${escapeHtml(market.close)}</span></div><button class="trade-link" type="button" data-trade-index="${index}">${action} <svg><use href="#i-arrow" /></svg></button></div></article>`;
   }).join("");
 }
 
@@ -187,16 +188,17 @@ function renderPositions() {
   if (!state.positions.length) return;
   $("#position-list").innerHTML = state.positions.map((position) => {
     let result;
+    const safeExplorerUrl = sanitizeUrl(position.explorerUrl);
     if (position.status === "pending") {
-      result = `<a class="position-result pending" href="${position.explorerUrl || '#'}" target="_blank" rel="noreferrer">Pending <svg><use href="#i-external" /></svg></a>`;
+      result = `<a class="position-result pending" href="${safeExplorerUrl}" target="_blank" rel="noreferrer">Pending <svg><use href="#i-external" /></svg></a>`;
     } else if (position.status === "failed") {
       result = '<span class="position-result failed">Failed</span>';
     } else if (position.explorerUrl) {
-      result = `<a class="position-result onchain" href="${position.explorerUrl}" target="_blank" rel="noreferrer">Confirmed <svg><use href="#i-external" /></svg></a>`;
+      result = `<a class="position-result onchain" href="${safeExplorerUrl}" target="_blank" rel="noreferrer">Confirmed <svg><use href="#i-external" /></svg></a>`;
     } else {
       result = '<span class="position-result">Simulated</span>';
     }
-    return `<article class="position-card"><div><h3>${position.title}</h3><p>Created ${position.time}</p></div><div class="position-stat"><span>Outcome</span><strong class="${position.outcome}">${position.outcome.toUpperCase()}</strong></div><div class="position-stat"><span>Stake</span><strong>${position.stake} XLM</strong></div><div class="position-stat"><span>Potential return</span><strong>${position.returns} XLM</strong></div>${result}</article>`;
+    return `<article class="position-card"><div><h3>${escapeHtml(position.title)}</h3><p>Created ${escapeHtml(position.time)}</p></div><div class="position-stat"><span>Outcome</span><strong class="${escapeHtml(position.outcome)}">${escapeHtml(position.outcome.toUpperCase())}</strong></div><div class="position-stat"><span>Stake</span><strong>${escapeHtml(position.stake)} XLM</strong></div><div class="position-stat"><span>Potential return</span><strong>${escapeHtml(position.returns)} XLM</strong></div>${result}</article>`;
   }).join("");
 }
 
