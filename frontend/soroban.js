@@ -164,4 +164,135 @@ export async function placeBet({ address, marketId, isYes, amountXlm, signTransa
   };
 }
 
-export const units = Object.freeze({ xlmToStroops });
+let contractsConfig = null;
+export async function getContracts() {
+  if (!contractsConfig) {
+    try {
+      const res = await fetch("./contracts.json");
+      if (res.ok) {
+        contractsConfig = await res.json();
+      }
+    } catch {
+      // fallback to known default addresses
+    }
+  }
+  return contractsConfig?.contracts || {
+    market: "CAPCAPWPGPOCENAJFYYIE22WYNFEDVZ3CT73M5MAKILFMBQ5TN2MIS6T",
+    token: "CBYUQUXPGWUQRV7STCV3YPVLWNTFJHKLEAG7LVAOK7H4FIFJGZW5P476",
+    referral: "CCKVUVYXR6FBB4VFYGDF3IDDUVBRJGKPDDRABTZYKI2LKAJNVLF3TTQ2",
+    leaderboard: "CCMNYMUI4XMDBTTMM7E6KNQFF3OVKS3Q2ERJ4EVQGCLW4VQCGUGG2AQM",
+  };
+}
+
+export function formatTokenAmount(amountStroops, decimals = 7) {
+  if (amountStroops == null) return "0";
+  try {
+    const str = String(amountStroops).trim();
+    const bi = BigInt(str);
+    const factor = 10n ** BigInt(decimals);
+    const whole = bi / factor;
+    const rem = bi % factor;
+    if (rem === 0n) return whole.toString();
+    const fracStr = rem.toString().padStart(decimals, "0").replace(/0+$/, "");
+    return `${whole}.${fracStr}`;
+  } catch {
+    return "0";
+  }
+}
+
+export async function getPulseWalletData(address) {
+  const contracts = await getContracts();
+  const sdk = await loadSdk();
+  const { Account, Contract, Networks, TransactionBuilder, nativeToScVal, scValToNative, rpc } = sdk;
+  const server = new rpc.Server(TESTNET.rpcUrl);
+  const tokenContract = new Contract(contracts.token);
+  const dummyAccount = new Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0");
+
+  let decimals = 7;
+  let symbol = "PULSE";
+  let balanceFormatted = "0";
+  let pendingRewards = "0";
+
+  try {
+    const txMeta = new TransactionBuilder(dummyAccount, { fee: "100", networkPassphrase: Networks.TESTNET })
+      .addOperation(tokenContract.call("decimals"))
+      .setTimeout(30)
+      .build();
+    const simMeta = await server.simulateTransaction(txMeta);
+    if (simMeta.result?.retval) {
+      decimals = Number(scValToNative(simMeta.result.retval)) || 7;
+    }
+  } catch {}
+
+  try {
+    const txBal = new TransactionBuilder(dummyAccount, { fee: "100", networkPassphrase: Networks.TESTNET })
+      .addOperation(tokenContract.call("balance", nativeToScVal(address, { type: "address" })))
+      .setTimeout(30)
+      .build();
+    const simBal = await server.simulateTransaction(txBal);
+    if (simBal.result?.retval) {
+      const rawBal = scValToNative(simBal.result.retval);
+      balanceFormatted = formatTokenAmount(rawBal, decimals);
+    }
+  } catch {}
+
+  if (contracts.leaderboard) {
+    try {
+      const lbContract = new Contract(contracts.leaderboard);
+      const txRewards = new TransactionBuilder(dummyAccount, { fee: "100", networkPassphrase: Networks.TESTNET })
+        .addOperation(lbContract.call("get_pending_reward", nativeToScVal(address, { type: "address" })))
+        .setTimeout(30)
+        .build();
+      const simRewards = await server.simulateTransaction(txRewards);
+      if (simRewards.result?.retval) {
+        const rawReward = scValToNative(simRewards.result.retval);
+        pendingRewards = formatTokenAmount(rawReward, decimals);
+      }
+    } catch {}
+  }
+
+  return {
+    decimals,
+    symbol,
+    balance: balanceFormatted,
+    pendingRewards,
+  };
+}
+
+export async function claimPendingRewards({ address, signTransaction, onStatus, pollAttempts = 60 }) {
+  if (!address) throw new Error("Connect a funded Testnet wallet first.");
+  const contracts = await getContracts();
+  if (!contracts.leaderboard) throw new Error("Leaderboard contract address is unavailable.");
+
+  const sdk = await loadSdk();
+  const { BASE_FEE, Contract, Networks, TransactionBuilder, nativeToScVal, rpc } = sdk;
+  const server = new rpc.Server(TESTNET.rpcUrl);
+  const source = await server.getAccount(address);
+  const lbContract = new Contract(contracts.leaderboard);
+
+  const tx = new TransactionBuilder(source, { fee: BASE_FEE, networkPassphrase: Networks.TESTNET })
+    .addOperation(lbContract.call("claim_pending_rewards", nativeToScVal(address, { type: "address" })))
+    .setTimeout(60)
+    .build();
+
+  onStatus?.("Simulating claim transaction");
+  const prepared = await server.prepareTransaction(tx);
+  onStatus?.("Confirm in Freighter");
+  const signed = await signTransaction(prepared.toXDR(), { address, networkPassphrase: TESTNET.networkPassphrase });
+  if (!signed?.signedTxXdr) throw new Error(signed?.error?.message || "Claim signing cancelled.");
+
+  const signedTx = TransactionBuilder.fromXDR(signed.signedTxXdr, Networks.TESTNET);
+  onStatus?.("Submitting claim transaction");
+  const submission = await server.sendTransaction(signedTx);
+  if (submission.status !== "PENDING") {
+    throw new Error(`Claim transaction rejected: ${submission.status}`);
+  }
+
+  const explorerUrl = `${TESTNET.explorerUrl}/${submission.hash}`;
+  onStatus?.("Waiting for confirmation");
+  await waitForTransaction(server, submission.hash, explorerUrl, pollAttempts, onStatus);
+  return { hash: submission.hash, explorerUrl };
+}
+
+export const units = Object.freeze({ xlmToStroops, formatTokenAmount });
+

@@ -1,10 +1,13 @@
+import { getPulseWalletData, claimPendingRewards } from "./soroban.js";
+
 const HORIZON_TESTNET = "https://horizon-testnet.stellar.org";
 const FRIENDbot = "https://friendbot.stellar.org";
 const TESTNET_PASSPHRASE = "Test SDF Network ; September 2015";
 
-const state = { address: "", balance: null, network: "" };
+const state = { address: "", balance: null, pulseBalance: null, pendingRewards: null, tokenSymbol: "PULSE", network: "" };
 const connectButton = document.querySelector("#connect-wallet");
 const panelAction = document.querySelector("#wallet-panel-action");
+const claimButton = document.querySelector("#wallet-claim-rewards");
 const panelTitle = document.querySelector("#wallet-panel-title");
 const panelDetail = document.querySelector("#wallet-panel-detail");
 const LOCAL_API_PATH = "./vendor/freighter-api.js";
@@ -50,29 +53,55 @@ function render() {
     panelDetail.textContent = "Connect Freighter on Stellar testnet";
     panelAction.textContent = "Connect";
     panelAction.dataset.action = "connect";
+    if (claimButton) claimButton.hidden = true;
     return;
   }
 
   connectButton.classList.add("connected");
   connectButton.querySelector("span").textContent = shorten(state.address);
   panelTitle.textContent = shorten(state.address);
-  panelDetail.textContent = state.balance === null
+  const xlmPart = state.balance === null
     ? "Stellar testnet"
-    : `${state.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} test XLM · Testnet`;
+    : `${state.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} test XLM`;
+  const pulsePart = state.pulseBalance !== null
+    ? ` · ${state.pulseBalance} ${state.tokenSymbol || "PULSE"}`
+    : "";
+  panelDetail.textContent = `${xlmPart}${pulsePart} · Testnet`;
   panelAction.textContent = state.balance === 0 ? "Fund" : "Disconnect";
   panelAction.dataset.action = state.balance === 0 ? "fund" : "disconnect";
+
+  if (claimButton) {
+    if (state.pendingRewards && Number(state.pendingRewards) > 0) {
+      claimButton.hidden = false;
+      claimButton.disabled = false;
+      claimButton.textContent = `Claim ${state.pendingRewards} ${state.tokenSymbol || "PULSE"}`;
+    } else {
+      claimButton.hidden = true;
+    }
+  }
 }
 
 async function loadBalance() {
   try {
     const response = await fetch(`${HORIZON_TESTNET}/accounts/${state.address}`);
-    if (response.status === 404) { state.balance = 0; return; }
-    if (!response.ok) throw new Error("Balance unavailable");
-    const account = await response.json();
-    const native = account.balances.find((item) => item.asset_type === "native");
-    state.balance = native ? Number(native.balance) : 0;
+    if (response.status === 404) { state.balance = 0; }
+    else if (!response.ok) throw new Error("Balance unavailable");
+    else {
+      const account = await response.json();
+      const native = account.balances.find((item) => item.asset_type === "native");
+      state.balance = native ? Number(native.balance) : 0;
+    }
   } catch {
     state.balance = null;
+  }
+
+  try {
+    const pulseData = await getPulseWalletData(state.address);
+    state.pulseBalance = pulseData.balance;
+    state.tokenSymbol = pulseData.symbol || "PULSE";
+    state.pendingRewards = pulseData.pendingRewards;
+  } catch (err) {
+    console.warn("Could not load PULSE token data:", err);
   }
 }
 
@@ -160,6 +189,8 @@ async function fund() {
 function disconnect() {
   state.address = "";
   state.balance = null;
+  state.pulseBalance = null;
+  state.pendingRewards = null;
   render();
   window.dispatchEvent(new CustomEvent("spulse:wallet", { detail: { ...state } }));
 }
@@ -169,6 +200,29 @@ panelAction.addEventListener("click", () => {
   if (panelAction.dataset.action === "fund") fund();
   else if (panelAction.dataset.action === "disconnect") disconnect();
   else connect();
+});
+
+claimButton?.addEventListener("click", async () => {
+  if (!state.address || claimButton.disabled) return;
+  claimButton.disabled = true;
+  const originalText = claimButton.textContent;
+  try {
+    claimButton.textContent = "Claiming…";
+    window.showWalletNotice?.("Preparing reward claim transaction...", false);
+    await claimPendingRewards({
+      address: state.address,
+      signTransaction: signWalletTransaction,
+      onStatus: (status) => {
+        claimButton.textContent = status;
+      },
+    });
+    window.showWalletNotice?.("Rewards claimed successfully! Updating balance...", false);
+    await refreshBalance();
+  } catch (error) {
+    claimButton.disabled = false;
+    claimButton.textContent = originalText;
+    window.showWalletNotice?.(errorMessage(error), true);
+  }
 });
 
 window.stellarWallet = {
